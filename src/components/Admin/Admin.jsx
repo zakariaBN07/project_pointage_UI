@@ -10,6 +10,9 @@ const Admin = () => {
   const [editingId, setEditingId] = useState(null);
   const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'superviseur' });
 
+  // Filter for only Superviseurs and Responsables
+  const filteredEmployees = employees.filter(emp => emp.role === 'superviseur' || emp.role === 'Responsable');
+
   // Fetch all employees from API
   const fetchEmployees = async () => {
     try {
@@ -185,7 +188,7 @@ const Admin = () => {
       </section>
 
       <section className="admin-section">
-        <h2>Add New Employee</h2>
+        <h2>Add Superviseur or Responsable</h2>
         <form onSubmit={handleAddEmployee} className="employee-form">
           <div className="form-group">
             <label htmlFor="name">Name:</label>
@@ -194,7 +197,7 @@ const Admin = () => {
               id="name"
               value={newEmployee.name}
               onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-              placeholder="Employee Name"
+              placeholder="Full Name"
               required
             />
           </div>
@@ -220,13 +223,13 @@ const Admin = () => {
               <option value="Responsable">Responsable</option>
             </select>
           </div>
-          <button type="submit" className="add-btn">Add Employee</button>
+          <button type="submit" className="add-btn">Add User</button>
         </form>
       </section>
 
       <section className="admin-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Employee List</h2>
+          <h2>Superviseurs & Responsables List</h2>
           {employees.length > 0 && (
             <button 
               onClick={handleExportToExcel}
@@ -237,8 +240,8 @@ const Admin = () => {
             </button>
           )}
         </div>
-        {employees.length === 0 ? (
-          <p>No employees found.</p>
+        {filteredEmployees.length === 0 ? (
+          <p>No superviseurs or responsables found.</p>
         ) : (
           <table className="employee-table">
             <thead>
@@ -250,7 +253,7 @@ const Admin = () => {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {filteredEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td>
                     {editingId === emp.id ? (

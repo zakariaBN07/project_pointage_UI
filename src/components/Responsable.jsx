@@ -17,8 +17,8 @@ const Responsable = () => {
           id: emp.id,
           name: emp.name,
           status: emp.status || 'En attente',
-          arrivee: emp.pointage || '-',
-          depart: '-' // Assuming depart is not available or handled separately
+          arrivee: emp.pointageEntree || '-',
+          depart: emp.pointageSortie || '-'
         }));
         setReports(formattedData);
       }
@@ -58,8 +58,8 @@ const Responsable = () => {
               <tr>
                 <th>Nom de l'Employé</th>
                 <th>Statut</th>
-                <th>Heure d'Arrivée</th>
-                <th>Heure de Départ</th>
+                <th>Heure d'Entrée</th>
+                <th>Heure de Sortie</th>
               </tr>
             </thead>
             <tbody>

@@ -78,6 +78,11 @@
   color: #c62828;
 }
 
+.status-badge.pending {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
 .export-btn:hover {
   background-color: #1a5c38 !important;
 }
