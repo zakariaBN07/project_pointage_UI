@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import './Superviseur.css';
 
-const Superviseur = () => {
+const Superviseur = ({ user }) => {
   const API_URL = import.meta.env.VITE_APP_API_BASE_URL;
   const [pointage, setPointage] = useState([]);
   const [status, setStatus] = useState('En attente');
   const [employeesPointage, setEmployeesPointage] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [supervisorName, setSupervisorName] = useState(user?.name || '');
   const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'employé' });
   const [editingId, setEditingId] = useState(null);
   const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'employé' });
@@ -166,7 +167,8 @@ const Superviseur = () => {
   };
 
   const handleExportFinalExcel = () => {
-    const dataToExport = employeesPointage.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
+    const dataToExport = supervisedEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
+      'Superviseur': supervisorName || 'Non spécifié',
       'Nom de l\'employé': name,
       'Matricule': matricule,
       'Pointage d\'entrée': pointageEntree,
@@ -223,16 +225,25 @@ const Superviseur = () => {
       <hr className="divider" />
 
       <section className="employees-management">
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <h2>Gestion des Employés</h2>
-          <button 
-            onClick={handleExportFinalExcel} 
-            className="export-btn" 
-            disabled={supervisedEmployees.length === 0}
-            style={{ backgroundColor: '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 ? 0.5 : 1 }}
-          >
-            Exporter Excel Final
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              placeholder="Votre nom (Superviseur)" 
+              value={supervisorName}
+              onChange={(e) => setSupervisorName(e.target.value)}
+              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+            />
+            <button 
+              onClick={handleExportFinalExcel} 
+              className="export-btn" 
+              disabled={supervisedEmployees.length === 0}
+              style={{ backgroundColor: '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 ? 0.5 : 1 }}
+            >
+              Exporter Excel Final
+            </button>
+          </div>
         </div>
 
         <div className="add-employee-form" style={{ marginBottom: '2rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>

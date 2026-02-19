@@ -6,9 +6,9 @@ const Admin = () => {
   const API_URL = import.meta.env.VITE_APP_API_BASE_URL;
   const [employees, setEmployees] = useState([]);
   const [importedPointage, setImportedPointage] = useState([]);
-  const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'superviseur' });
+  const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'superviseur', password: '' });
   const [editingId, setEditingId] = useState(null);
-  const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'superviseur' });
+  const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'superviseur', password: '' });
 
   // Filter for only Superviseurs and Responsables
   const filteredEmployees = employees.filter(emp => emp.role === 'superviseur' || emp.role === 'Responsable');
@@ -41,7 +41,7 @@ const Admin = () => {
         });
         if (response.ok) {
           fetchEmployees();
-          setNewEmployee({ name: '', matricule: '', role: 'superviseur' });
+          setNewEmployee({ name: '', matricule: '', role: 'superviseur', password: '' });
         }
       } catch (error) {
         console.error("Error adding employee:", error);
@@ -64,7 +64,7 @@ const Admin = () => {
 
   const startEditing = (emp) => {
     setEditingId(emp.id);
-    setEditEmployee({ name: emp.name, matricule: emp.matricule, role: emp.role });
+    setEditEmployee({ name: emp.name, matricule: emp.matricule, role: emp.role, password: emp.password || '' });
   };
 
   const handleEditChange = (e) => {
@@ -95,11 +95,11 @@ const Admin = () => {
   };
 
   const handleExportToExcel = () => {
-    const dataToExport = employees.map(({ name, matricule, role }) => ({ name, matricule, role }));
+    const dataToExport = filteredEmployees.map(({ name, role }) => ({ 'Nom': name, 'Rôle': role }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
-    XLSX.writeFile(workbook, "Employees_List.xlsx");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Superviseurs et Responsables");
+    XLSX.writeFile(workbook, "List_Superviseurs_Responsables.xlsx");
   };
 
   const handleImportExcel = (e) => {
@@ -223,6 +223,17 @@ const Admin = () => {
               <option value="Responsable">Responsable</option>
             </select>
           </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              value={newEmployee.password}
+              onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+              placeholder="Initial Password"
+              required
+            />
+          </div>
           <button type="submit" className="add-btn">Add User</button>
         </form>
       </section>
@@ -249,6 +260,7 @@ const Admin = () => {
                 <th>Name</th>
                 <th>Matricule</th>
                 <th>Role</th>
+                <th>Password</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -291,6 +303,18 @@ const Admin = () => {
                       </select>
                     ) : (
                       emp.role
+                    )}
+                  </td>
+                  <td>
+                    {editingId === emp.id ? (
+                      <input
+                        type="text"
+                        name="password"
+                        value={editEmployee.password}
+                        onChange={handleEditChange}
+                      />
+                    ) : (
+                      '********'
                     )}
                   </td>
                   <td>
