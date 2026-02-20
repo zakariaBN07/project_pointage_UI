@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import './App.css'
-import Login from './components/Login'
+import Login from './components//login/Login'
 import Admin from './components/Admin/Admin'
 import Superviseur from './components/superviseur/Superviseur'
 import Responsable from './components/Responsable'
+import Notification from './components/Notification'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -30,19 +31,56 @@ function App() {
   }
 
   return (
-    <div className="app-main">
-      <nav className="app-nav" style={{ padding: '1rem', borderBottom: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <span style={{ marginRight: '1rem', fontWeight: 'bold' }}>Session: {user.name || user.username} ({user.role})</span>
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <span className="logo-icon">📊</span>
+          <span>Pointage Manager</span>
         </div>
-        <button onClick={handleLogout} style={{ cursor: 'pointer', padding: '0.5rem 1rem', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px' }}>Déconnexion</button>
-      </nav>
+        <nav className="sidebar-nav">
+          <div className="nav-item active">
+            <span>🏠</span>
+            <span>Dashboard</span>
+          </div>
+          <div className="nav-item">
+            <span>👥</span>
+            <span>Équipes</span>
+          </div>
+          <div className="nav-item">
+            <span>📅</span>
+            <span>Rapports</span>
+          </div>
+          <div className="nav-item">
+            <span>⚙️</span>
+            <span>Paramètres</span>
+          </div>
+        </nav>
+        {user.role === 'admin' && (
+          <div className="sidebar-notifications">
+            <Notification />
+          </div>
+        )}
+      </aside>
 
-      <main>
-        {user.role === 'admin' && <Admin />}
-        {user.role === 'superviseur' && <Superviseur user={user} />}
-        {user.role === 'Responsable' && <Responsable user={user} />}
-      </main>
+      <div className="main-content">
+        <header className="topbar">
+          <div className="user-profile">
+            <div className="user-info">
+              <span className="user-name">{user.name || user.username}</span>
+              <span className="user-role">{user.role}</span>
+            </div>
+            <button onClick={handleLogout} className="logout-btn">
+              Déconnexion
+            </button>
+          </div>
+        </header>
+
+        <main className="content-body">
+          {user.role === 'admin' && <Admin />}
+          {user.role === 'superviseur' && <Superviseur user={user} />}
+          {user.role === 'Responsable' && <Responsable user={user} />}
+        </main>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ name: '', password: '' });
   const [error, setError] = useState('');
   const API_URL = import.meta.env.VITE_APP_API_BASE_URL;
 
@@ -15,28 +15,30 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setError('');
 
-    // Handle Admin login (hardcoded for now as requested or common practice)
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      onLogin({ username: 'admin', role: 'admin' });
+    // Handle Admin login (hardcoded)
+    if (credentials.name === 'admin' && credentials.password === 'admin123') {
+      onLogin({ name: 'admin', role: 'admin' });
       return;
     }
 
     try {
-      // Fetch employees to find the one with matching matricule (username) and password
-      const response = await fetch(`${API_URL}/employees`);
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+
       if (response.ok) {
-        const employees = await response.json();
-        const user = employees.find(emp => emp.matricule === credentials.username && emp.password === credentials.password);
-        
-        if (user && (user.role === 'superviseur' || user.role === 'Responsable')) {
-          onLogin({ ...user });
-        } else {
-          setError('Identifiants invalides ou accès non autorisé.');
-        }
+        const user = await response.json();
+        onLogin(user);
+      } else if (response.status === 401) {
+        setError('Identifiants invalides.');
+      } else {
+        setError('Erreur serveur.');
       }
     } catch (err) {
-      console.error("Login error:", err);
-      setError('Erreur lors de la connexion au serveur.');
+      console.error('Login error:', err);
+      setError('Erreur lors de la connexion.');
     }
   };
 
@@ -46,11 +48,11 @@ const Login = ({ onLogin }) => {
         <h2>Système de Pointage - Connexion</h2>
         <form onSubmit={handleSubmit}>
           <div className="login-group">
-            <label>Matricule / Utilisateur</label>
+            <label>Nom / Utilisateur</label>
             <input 
               type="text" 
-              name="username" 
-              value={credentials.username} 
+              name="name" 
+              value={credentials.name} 
               onChange={handleChange} 
               required 
             />

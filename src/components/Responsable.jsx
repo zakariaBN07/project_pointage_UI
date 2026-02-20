@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import * as XLSX from 'xlsx';
+import { NotificationContext } from '../context/NotificationContext';
 import './Responsable.css';
 
-const Responsable = () => {
-  const API_URL = import.meta.env.VITE_APP_API_BASE_URL;
+const Responsable = ({ user }) => {
+  const { addNotification } = useContext(NotificationContext);
+  const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/employees`);
+      const response = await fetch(`${API_EMPLOYEE}/employees`);
       if (response.ok) {
         const data = await response.json();
-        // Map API data to our report format
         const formattedData = data.map(emp => ({
           id: emp.id,
           name: emp.name,
@@ -33,6 +36,50 @@ const Responsable = () => {
     fetchReports();
   }, []);
 
+  const handleExportReports = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      if (!response.ok) {
+        console.error('Failed to fetch latest employee data');
+        setIsExporting(false);
+        return;
+      }
+
+      const latestData = await response.json();
+      const formattedData = latestData.map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        status: emp.status || 'En attente',
+        arrivee: emp.pointageEntree || '-',
+        depart: emp.pointageSortie || '-'
+      }));
+
+      const dataToExport = formattedData.map(report => ({
+        'Responsable': user?.name || 'Non spécifié',
+        'Nom de l\'Employé': report.name,
+        'Heure d\'Entrée': report.arrivee,
+        'Heure de Sortie': report.depart,
+        'Statut': report.status
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rapport Journalier");
+      XLSX.writeFile(workbook, "Rapport_Journalier.xlsx");
+
+      addNotification(
+        `${user?.name || 'Un responsable'} a exporté le rapport journalier (${dataToExport.length} employé(s))`,
+        'success',
+        dataToExport
+      );
+    } catch (error) {
+      console.error("Error exporting reports:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const stats = {
     total: reports.length,
     present: reports.filter(r => r.status === 'Présent').length,
@@ -40,64 +87,83 @@ const Responsable = () => {
   };
 
   return (
-    <div className="responsable-container">
-      <h1>Espace Responsable</h1>
-      <p>Consultation des rapports de pointage et présence.</p>
+    <div className="responsable-view">
+      <div className="view-header">
+        <h1>Espace Responsable</h1>
+      </div>
 
-      <div className="reports-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Rapport Journalier</h2>
-          <button onClick={fetchReports} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Actualiser</button>
+      <div className="stats-container">
+        <div className="stat-card">
+          <span className="stat-label">Total Employés</span>
+          <span className="stat-value">{stats.total}</span>
+          <span className="stat-trend trend-up">Actifs</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Présents Aujourd'hui</span>
+          <span className="stat-value" style={{ color: 'var(--success)' }}>{stats.present}</span>
+          <span className="stat-trend trend-up">En poste</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Absences</span>
+          <span className="stat-value" style={{ color: 'var(--danger)' }}>{stats.absent}</span>
+          <span className="stat-trend" style={{ background: '#fee2e2', color: '#991b1b' }}>Aujourd'hui</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-title">
+          <h2>Rapport Journalier de Pointage</h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={fetchReports} className="refresh-btn">
+              🔄 Actualiser
+            </button>
+            <button 
+              onClick={handleExportReports} 
+              className="refresh-btn"
+              disabled={reports.length === 0 || isExporting}
+              style={{ background: '#10b981', color: 'white', opacity: reports.length === 0 || isExporting ? 0.5 : 1, cursor: isExporting ? 'not-allowed' : 'pointer' }}
+            >
+              {isExporting ? '⏳ Export...' : '📥 Exporter'}
+            </button>
+          </div>
         </div>
         
         {loading ? (
-          <p>Chargement des rapports...</p>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Chargement des rapports...</div>
         ) : (
-          <table className="reports-table">
-            <thead>
-              <tr>
-                <th>Nom de l'Employé</th>
-                <th>Statut</th>
-                <th>Heure d'Entrée</th>
-                <th>Heure de Sortie</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.length === 0 ? (
+          <div className="table-responsive">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan="4" style={{ textAlign: 'center' }}>Aucun rapport disponible.</td>
+                  <th>Nom de l'Employé</th>
+                  <th>Heure d'Entrée</th>
+                  <th>Heure de Sortie</th>
+                  <th style={{ textAlign: 'right' }}>Statut</th>
                 </tr>
-              ) : (
-                reports.map((report) => (
-                  <tr key={report.id}>
-                    <td>{report.name}</td>
-                    <td><span className={`badge ${report.status === 'Présent' ? 'success' : 'warning'}`}>{report.status}</span></td>
-                    <td>{report.arrivee}</td>
-                    <td>{report.depart}</td>
+              </thead>
+              <tbody>
+                {reports.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  reports.map((report) => (
+                    <tr key={report.id}>
+                      <td style={{ fontWeight: 600 }}>{report.name}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{report.arrivee}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{report.depart}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className={`badge ${report.status === 'Présent' ? 'badge-success' : 'badge-warning'}`}>
+                          {report.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
-
-      <div className="stats-section">
-        <h3>Statistiques Rapides</h3>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h4>Total Employés</h4>
-            <p>{stats.total}</p>
-          </div>
-          <div className="stat-card">
-            <h4>Présents Aujourd'hui</h4>
-            <p>{stats.present}</p>
-          </div>
-          <div className="stat-card">
-            <h4>Absences</h4>
-            <p>{stats.absent}</p>
-          </div>
-        </div>
       </div>
     </div>
   );

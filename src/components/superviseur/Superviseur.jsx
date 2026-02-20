@@ -1,26 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
+import { NotificationContext } from '../../context/NotificationContext';
 import './Superviseur.css';
 
 const Superviseur = ({ user }) => {
-  const API_URL = import.meta.env.VITE_APP_API_BASE_URL;
+  const { addNotification } = useContext(NotificationContext);
+  const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const [pointage, setPointage] = useState([]);
   const [status, setStatus] = useState('En attente');
   const [employeesPointage, setEmployeesPointage] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [supervisorName, setSupervisorName] = useState(user?.name || '');
   const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'employé' });
   const [editingId, setEditingId] = useState(null);
   const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'employé' });
+  const [showWarning, setShowWarning] = useState(false);
 
   // Filter for only regular employees
   const supervisedEmployees = employeesPointage.filter(emp => emp.role === 'employé' || !emp.role);
+  
+  // Count employees with status "En attente"
+  const unmarkedEmployees = supervisedEmployees.filter(emp => emp.status === 'En attente');
+  const unmarkedCount = unmarkedEmployees.length;
 
   // Fetch employees to supervise from API
   const fetchEmployeesToSupervise = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/employees`);
+      const response = await fetch(`${API_EMPLOYEE}/employees`);
       if (response.ok) {
         const data = await response.json();
         // Initialize with default status if not present
@@ -43,7 +51,7 @@ const Superviseur = ({ user }) => {
     e.preventDefault();
     if (newEmployee.name.trim() && newEmployee.matricule.trim()) {
       try {
-        const response = await fetch(`${API_URL}/employees`, {
+        const response = await fetch(`${API_EMPLOYEE}/employees`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...newEmployee, status: 'En attente', pointageEntree: '-', pointageSortie: '-' }),
@@ -61,7 +69,7 @@ const Superviseur = ({ user }) => {
   const handleDeleteEmployee = async (id) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cet employé ?")) {
       try {
-        const response = await fetch(`${API_URL}/employees/${id}`, {
+        const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
           method: 'DELETE',
         });
         if (response.ok) {
@@ -86,7 +94,7 @@ const Superviseur = ({ user }) => {
   const saveEdit = async (id) => {
     const emp = employeesPointage.find(e => e.id === id);
     try {
-      const response = await fetch(`${API_URL}/employees/${id}`, {
+      const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...emp, ...editEmployee }),
@@ -120,15 +128,15 @@ const Superviseur = ({ user }) => {
 
   const markStatus = async (id, newStatus) => {
     const now = new Date();
-    const timeString = now.toLocaleTimeString();
+    const timeString = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
     // Find current employee data
     const emp = employeesPointage.find(e => e.id === id);
     if (!emp) return;
 
     // Optimistic Update
-    let updatedEntree = emp.pointageEntree || '-';
-    let updatedSortie = emp.pointageSortie || '-';
+    let updatedEntree = emp.pointageEntree;
+    let updatedSortie = emp.pointageSortie;
 
     if (newStatus === 'Présent') {
       updatedEntree = timeString;
@@ -145,7 +153,7 @@ const Superviseur = ({ user }) => {
     ));
 
     try {
-      const response = await fetch(`${API_URL}/employees/${id}`, {
+      const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -157,6 +165,7 @@ const Superviseur = ({ user }) => {
       });
       
       if (!response.ok) {
+        console.error("Failed to update employee status");
         // Rollback on error
         fetchEmployeesToSupervise();
       }
@@ -166,20 +175,43 @@ const Superviseur = ({ user }) => {
     }
   };
 
-  const handleExportFinalExcel = () => {
-    const dataToExport = supervisedEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
-      'Superviseur': supervisorName || 'Non spécifié',
-      'Nom de l\'employé': name,
-      'Matricule': matricule,
-      'Pointage d\'entrée': pointageEntree,
-      'Pointage de sortie': pointageSortie,
-      'Statut': status
-    }));
+  const handleExportFinalExcel = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      if (!response.ok) {
+        console.error('Failed to fetch latest employee data');
+        setIsExporting(false);
+        return;
+      }
 
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Pointage Final");
-    XLSX.writeFile(workbook, "Pointage_Final_Employees.xlsx");
+      const latestData = await response.json();
+      const latestEmployees = latestData.filter(emp => emp.role === 'employé' || !emp.role);
+
+      const dataToExport = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
+        'Superviseur': supervisorName || 'Non spécifié',
+        'Nom de l\'employé': name,
+        'Matricule': matricule,
+        'Pointage d\'entrée': pointageEntree || '-',
+        'Pointage de sortie': pointageSortie || '-',
+        'Statut': status || 'En attente'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Pointage Final");
+      XLSX.writeFile(workbook, "Pointage_Final_Employees.xlsx");
+
+      addNotification(
+        `${user.name || 'Un superviseur'} a exporté la liste de pointage final (${latestEmployees.length} employé(s))`,
+        'success',
+        dataToExport
+      );
+    } catch (error) {
+      console.error("Error exporting pointage:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -235,14 +267,21 @@ const Superviseur = ({ user }) => {
               onChange={(e) => setSupervisorName(e.target.value)}
               style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
             />
-            <button 
-              onClick={handleExportFinalExcel} 
-              className="export-btn" 
-              disabled={supervisedEmployees.length === 0}
-              style={{ backgroundColor: '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 ? 0.5 : 1 }}
-            >
-              Exporter Excel Final
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button 
+                onClick={() => unmarkedCount > 0 ? setShowWarning(true) : handleExportFinalExcel()} 
+                className="export-btn" 
+                disabled={supervisedEmployees.length === 0 || isExporting}
+                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
+              >
+                {isExporting ? '⏳ Export en cours...' : 'Exporter Excel Final'}
+              </button>
+              {unmarkedCount > 0 && (
+                <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '500' }}>
+                  ⚠️ {unmarkedCount} employé(s) non marqué(s)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -373,6 +412,37 @@ const Superviseur = ({ user }) => {
           </table>
         )}
       </section>
+
+      {showWarning && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', borderRadius: '8px', padding: '2rem', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: '#1f2937' }}>⚠️ Attention</h3>
+            <p style={{ margin: '0 0 1rem 0', color: '#6b7280' }}>
+              {unmarkedCount} employé(s) n'ont pas encore été marqué(s) avec un statut (Entrée, Sortie ou Absent).
+            </p>
+            <p style={{ margin: '0 0 1.5rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
+              Voulez-vous continuer l'exportation malgré tout ?
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowWarning(false)}
+                style={{ padding: '0.5rem 1rem', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#f9fafb', cursor: 'pointer', fontWeight: '500' }}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => {
+                  setShowWarning(false);
+                  handleExportFinalExcel();
+                }}
+                style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', background: '#f59e0b', color: 'white', cursor: 'pointer', fontWeight: '500' }}
+              >
+                Exporter quand même
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

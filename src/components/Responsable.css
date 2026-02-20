@@ -1,72 +1,62 @@
-.responsable-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+.responsable-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.reports-section {
-  margin-bottom: 3rem;
-}
-
-.reports-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-.reports-table th, .reports-table td {
-  padding: 1rem;
-  border: 1px solid #eee;
-  text-align: left;
-}
-
-.reports-table th {
-  background: #f9f9f9;
-  font-weight: bold;
-}
-
-.badge {
-  padding: 0.3rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: bold;
-}
-
-.badge.success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.badge.warning {
-  background-color: #fff3e0;
-  color: #ef6c00;
-}
-
-.stats-grid {
+.stats-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  margin-top: 1.5rem;
 }
 
 .stat-card {
+  background: white;
   padding: 1.5rem;
-  background-color: #fff;
-  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stat-trend {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.trend-up { background: #dcfce7; color: #166534; }
+
+.reports-card {
+  composes: card;
+}
+
+.refresh-btn {
+  background: #f1f5f9;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
   border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.stat-card h4 {
-  margin: 0 0 0.5rem 0;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.stat-card p {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #333;
+.refresh-btn:hover {
+  background: #e2e8f0;
 }
