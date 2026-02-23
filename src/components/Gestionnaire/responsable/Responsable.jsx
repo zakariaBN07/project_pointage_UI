@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
-import { NotificationContext } from '../context/NotificationContext';
+import { NotificationContext } from '../../../context/NotificationContext';
 import './Responsable.css';
 
 const Responsable = ({ user }) => {
@@ -13,7 +13,10 @@ const Responsable = ({ user }) => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      const url = user?.id 
+        ? `${API_EMPLOYEE}/employees?responsableId=${user.id}`
+        : `${API_EMPLOYEE}/employees`;
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const formattedData = data.map(emp => ({
@@ -34,12 +37,15 @@ const Responsable = ({ user }) => {
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [user?.id]);
 
   const handleExportReports = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      const url = user?.id 
+        ? `${API_EMPLOYEE}/employees?responsableId=${user.id}`
+        : `${API_EMPLOYEE}/employees`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.error('Failed to fetch latest employee data');
         setIsExporting(false);

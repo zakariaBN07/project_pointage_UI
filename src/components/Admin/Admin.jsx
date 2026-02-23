@@ -43,7 +43,7 @@ const Admin = () => {
         });
         if (response.ok) {
           fetchGestionnaires();
-          setNewGestionnaire({ name: '', role: 'superviseur', password: '' });
+          setNewGestionnaire({ name: '', email: '', role: 'superviseur', password: '' });
           setIsAddModalOpen(false);
         }
       } catch (error) {
@@ -69,7 +69,7 @@ const Admin = () => {
 
   const startEditing = (g) => {
     setEditingId(g.id);
-    setEditGestionnaire({ name: g.name, role: g.role, password: g.password || '' });
+    setEditGestionnaire({ name: g.name, email: g.email, role: g.role, password: g.password || '' });
     setIsEditModalOpen(true);
   };
 
@@ -109,6 +109,38 @@ const Admin = () => {
     XLSX.writeFile(workbook, "List_Gestionnaires.xlsx");
   };
 
+  const handleImportGestionnaires = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const bstr = event.target.result;
+      const workbook = XLSX.read(bstr, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      for (const row of data) {
+        try {
+          await fetch(`${API_ADMIN}/gestionnaires`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: row['Nom'],
+              role: row['Rôle'] || 'superviseur',
+              email: row['Email'] || '',
+              password: row['Mot de passe'] || Math.random().toString(36).slice(-8),
+            }),
+          });
+        } catch (error) {
+          console.error("Error importing gestionnaire:", error);
+        }
+      }
+      fetchGestionnaires();
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -137,11 +169,23 @@ const Admin = () => {
       <div className="card">
         <div className="section-title">
           <h2>Liste des Gestionnaires</h2>
-          {gestionnaires.length > 0 && (
-            <button onClick={handleExportToExcel} className="btn" style={{ background: '#f1f5f9', color: '#475569' }}>
-              📥 Exporter Excel
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input 
+              type="file" 
+              accept=".xlsx, .xls" 
+              onChange={handleImportGestionnaires}
+              id="import-gestionnaires"
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="import-gestionnaires" className="btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', margin: 0 }}>
+              📤 Importer Excel
+            </label>
+            {gestionnaires.length > 0 && (
+              <button onClick={handleExportToExcel} className="btn" style={{ background: '#f1f5f9', color: '#475569' }}>
+                📥 Exporter Excel
+              </button>
+            )}
+          </div>
         </div>
 
         {filteredGestionnaires.length === 0 ? (
@@ -213,16 +257,20 @@ const Admin = () => {
             <table className="gestionnaires-table">
               <thead>
                 <tr>
+                  <th>Superviseur</th>
                   <th>Employé</th>
-                  <th>Pointage</th>
+                  <th>Pointage d'entrée</th>
+                  <th>Pointage de sortie</th>
                   <th>Statut</th>
                 </tr>
               </thead>
               <tbody>
                 {importedPointage.map((row, index) => (
                   <tr key={index}>
+                    <td>{row['Superviseur']}</td>
                     <td>{row['Nom de l\'employé']}</td>
-                    <td>{row['Pointage']}</td>
+                    <td>{row['Pointage d\'entrée']}</td>
+                    <td>{row['Pointage de sortie']}</td>
                     <td>
                       <span className={`badge ${row['Statut'] === 'Présent' ? 'badge-success' : 'badge-warning'}`}>
                         {row['Statut']}
@@ -250,7 +298,17 @@ const Admin = () => {
                   type="text"
                   value={newGestionnaire.name}
                   onChange={(e) => setNewGestionnaire({ ...newGestionnaire, name: e.target.value })}
-                  placeholder="ex: Jean Dupont"
+                  placeholder=""
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Adresse e-mail</label>
+                <input
+                  type="email"
+                  value={newGestionnaire.email}
+                  onChange={(e) => setNewGestionnaire({ ...newGestionnaire, email: e.target.value })}
+                  placeholder=""
                   required
                 />
               </div>

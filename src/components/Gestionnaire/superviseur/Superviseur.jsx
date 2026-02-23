@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
-import { NotificationContext } from '../../context/NotificationContext';
+import { NotificationContext } from '../../../context/NotificationContext';
 import './Superviseur.css';
 
 const Superviseur = ({ user }) => {
@@ -28,7 +28,10 @@ const Superviseur = ({ user }) => {
   const fetchEmployeesToSupervise = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      const url = user?.id 
+        ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
+        : `${API_EMPLOYEE}/employees`;
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         // Initialize with default status if not present
@@ -54,7 +57,13 @@ const Superviseur = ({ user }) => {
         const response = await fetch(`${API_EMPLOYEE}/employees`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...newEmployee, status: 'En attente', pointageEntree: '-', pointageSortie: '-' }),
+          body: JSON.stringify({ 
+            ...newEmployee, 
+            supervisorId: user?.id,
+            status: 'En attente', 
+            pointageEntree: '-', 
+            pointageSortie: '-' 
+          }),
         });
         if (response.ok) {
           fetchEmployeesToSupervise();
@@ -114,7 +123,7 @@ const Superviseur = ({ user }) => {
 
   useEffect(() => {
     fetchEmployeesToSupervise();
-  }, []);
+  }, [user?.id]);
 
   const handlePointage = () => {
     const now = new Date();
@@ -178,7 +187,10 @@ const Superviseur = ({ user }) => {
   const handleExportFinalExcel = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`${API_EMPLOYEE}/employees`);
+      const url = user?.id 
+        ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
+        : `${API_EMPLOYEE}/employees`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.error('Failed to fetch latest employee data');
         setIsExporting(false);

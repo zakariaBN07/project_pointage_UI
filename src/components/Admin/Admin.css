@@ -7,8 +7,9 @@
 
 .admin-header h1 {
   margin: 0;
-  font-size: 1.875rem;
+  font-size: 1.75rem;
   font-weight: 700;
+  color: var(--text-main);
 }
 
 .section-title {
@@ -29,20 +30,37 @@
   composes: card;
 }
 
+.gestionnaires-table {
+  width: 100%;
+}
+
 .gestionnaires-table th {
-  background: transparent;
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+.gestionnaires-table tbody tr:hover {
+  background-color: #f9fafb;
 }
 
 .role-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
+  display: inline-block;
 }
 
-.role-superviseur { background: #e0f2fe; color: #0369a1; }
-.role-responsable { background: #f3e8ff; color: #7e22ce; }
+.role-superviseur { 
+  background: #dbeafe;
+  color: #0369a1;
+}
+
+.role-responsable { 
+  background: #f3e8ff;
+  color: #7e22ce;
+}
 
 .action-buttons {
   display: flex;
@@ -50,8 +68,8 @@
 }
 
 .btn-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,30 +77,32 @@
   border: 1px solid var(--border-color);
   background: white;
   color: var(--text-muted);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 1rem;
 }
 
 .btn-icon:hover {
-  background: #f1f5f9;
+  background: #f3f4f6;
   color: var(--text-main);
+  border-color: var(--text-muted);
 }
 
 .btn-icon.edit:hover {
-  color: var(--primary-color);
-  border-color: var(--primary-color);
+  color: #0369a1;
+  border-color: #0369a1;
 }
 
 .btn-icon.delete:hover {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: #dc2626;
+  border-color: #dc2626;
 }
 
 /* Modal Enhancements */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -92,7 +112,7 @@
 .modal-content {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   max-width: 450px;
   box-shadow: var(--shadow-lg);
@@ -105,6 +125,8 @@
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
 }
 
 .form-group {
@@ -114,43 +136,43 @@
 .form-group label {
   display: block;
   font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text-main);
 }
 
 .form-group input, .form-group select {
   width: 100%;
-  padding: 0.625rem;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease;
 }
 
 .form-group input:focus, .form-group select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .import-zone {
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  background: #f8fafc;
-  transition: all 0.2s;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .import-zone:hover {
   border-color: var(--primary-color);
-  background: #f0f7ff;
+  background: #f3f4f6;
 }
