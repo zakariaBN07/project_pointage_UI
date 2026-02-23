@@ -184,6 +184,99 @@ const Superviseur = ({ user }) => {
     }
   };
 
+  const handleExportEmployees = () => {
+    const dataToExport = supervisedEmployees.map(({ name, matricule }) => ({ 'Nom': name, 'Matricule': matricule }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employés");
+    XLSX.writeFile(workbook, "List_Employees.xlsx");
+  };
+
+  const handleImportEmployees = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const bstr = event.target.result;
+      const workbook = XLSX.read(bstr, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convert to array of arrays for a deep search of headers
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      
+      let headerRowIndex = -1;
+      // Deep scan the first 100 rows for anything that looks like a header
+      for (let i = 0; i < Math.min(rows.length, 100); i++) {
+        const row = rows[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        const isHeaderRow = row.some(cell => {
+          const s = String(cell || '').toLowerCase().trim();
+          return s.includes('nom') || s.includes('matricule') || s.includes('employé');
+        });
+
+        if (isHeaderRow) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        alert("Erreur: Impossible de localiser la ligne d'en-tête. Assurez-vous que votre fichier contient une colonne 'Nom complet' ou 'Matricule'.");
+        return;
+      }
+
+      // Read data starting exactly from the detected header row
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
+      
+      let importCount = 0;
+      for (const row of rawData) {
+        // Find the best matching keys for Name and Matricule in this row
+        const keys = Object.keys(row);
+        const nameKey = keys.find(k => {
+          const s = k.toLowerCase().trim();
+          return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
+        });
+        const matriculeKey = keys.find(k => k.toLowerCase().trim().includes('matricule'));
+
+        const name = nameKey ? row[nameKey] : null;
+        const matricule = matriculeKey ? row[matriculeKey] : null;
+
+        // Skip rows that are empty, or are just the header text repeated, or are summary rows (like totals)
+        if (!name || 
+            String(name).toLowerCase().trim() === 'nom complet' || 
+            String(name).toLowerCase().trim() === 'nom' ||
+            String(name).toLowerCase().trim().includes('total')) continue;
+
+        try {
+          const response = await fetch(`${API_EMPLOYEE}/employees`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: String(name).trim(),
+              matricule: matricule ? String(matricule).trim() : '',
+              supervisorId: user?.id,
+              role: 'employé',
+              status: 'En attente',
+              pointageEntree: '-',
+              pointageSortie: '-'
+            }),
+          });
+          if (response.ok) importCount++;
+        } catch (error) {
+          console.error("Error importing employee:", error);
+        }
+      }
+      
+      if (importCount > 0) {
+        addNotification(`${importCount} employé(s) importé(s) avec succès`, 'success');
+      }
+      fetchEmployeesToSupervise();
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const handleExportFinalExcel = async () => {
     setIsExporting(true);
     try {
@@ -202,7 +295,7 @@ const Superviseur = ({ user }) => {
 
       const dataToExport = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
         'Superviseur': supervisorName || 'Non spécifié',
-        'Nom de l\'employé': name,
+        'Nom complet': name,
         'Matricule': matricule,
         'Pointage d\'entrée': pointageEntree || '-',
         'Pointage de sortie': pointageSortie || '-',
@@ -271,7 +364,7 @@ const Superviseur = ({ user }) => {
       <section className="employees-management">
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <h2>Gestion des Employés</h2>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <input 
               type="text" 
               placeholder="Votre nom (Superviseur)" 
@@ -279,6 +372,26 @@ const Superviseur = ({ user }) => {
               onChange={(e) => setSupervisorName(e.target.value)}
               style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
             />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input 
+                type="file" 
+                accept=".xlsx, .xls" 
+                onChange={handleImportEmployees}
+                id="import-employees"
+                style={{ display: 'none' }}
+              />
+              <label htmlFor="import-employees" className="export-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', fontWeight: 'bold', margin: 0 }}>
+                📤 Importer
+              </label>
+              <button 
+                onClick={handleExportEmployees}
+                className="export-btn"
+                disabled={supervisedEmployees.length === 0}
+                style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: supervisedEmployees.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 ? 0.5 : 1 }}
+              >
+                📥 Exporter
+              </button>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button 
                 onClick={() => unmarkedCount > 0 ? setShowWarning(true) : handleExportFinalExcel()} 

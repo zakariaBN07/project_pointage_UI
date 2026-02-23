@@ -39,6 +39,86 @@ const Responsable = ({ user }) => {
     fetchReports();
   }, [user?.id]);
 
+  const handleExportEmployees = () => {
+    const dataToExport = reports.map(({ name }) => ({ 'Nom': name }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employés");
+    XLSX.writeFile(workbook, "List_Employees.xlsx");
+  };
+
+  const handleImportEmployees = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const bstr = event.target.result;
+      const workbook = XLSX.read(bstr, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convert to array of arrays to find the header row accurately
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      let headerRowIndex = -1;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row && Array.isArray(row)) {
+          // Check if any cell in this row looks like a "Name" header
+          const hasNameHeader = row.some(cell => {
+            const s = String(cell || '').toLowerCase().trim();
+            return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
+          });
+          
+          if (hasNameHeader) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        alert("Impossible de trouver la colonne 'Nom complet' ou 'Nom' dans votre fichier Excel. Vérifiez l'en-tête de votre fichier.");
+        return;
+      }
+
+      // Read data from the detected header row
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
+      
+      for (const row of rawData) {
+        // Dynamically find the right keys in case of small spelling/space differences
+        const keys = Object.keys(row);
+        const nameKey = keys.find(k => {
+          const s = k.toLowerCase().trim();
+          return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
+        });
+
+        const name = nameKey ? row[nameKey] : null;
+
+        // Skip header duplicates or empty names
+        if (!name || String(name).toLowerCase().trim().includes('nom complet')) continue;
+
+        try {
+          await fetch(`${API_EMPLOYEE}/employees`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: String(name).trim(),
+              responsableId: user?.id,
+              status: 'En attente',
+              pointageEntree: '-',
+              pointageSortie: '-'
+            }),
+          });
+        } catch (error) {
+          console.error("Error importing employee:", error);
+        }
+      }
+      fetchReports();
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const handleExportReports = async () => {
     setIsExporting(true);
     try {
@@ -63,7 +143,7 @@ const Responsable = ({ user }) => {
 
       const dataToExport = formattedData.map(report => ({
         'Responsable': user?.name || 'Non spécifié',
-        'Nom de l\'Employé': report.name,
+        'Nom complet': report.name,
         'Heure d\'Entrée': report.arrivee,
         'Heure de Sortie': report.depart,
         'Statut': report.status
@@ -119,9 +199,27 @@ const Responsable = ({ user }) => {
       <div className="card">
         <div className="section-title">
           <h2>Rapport Journalier de Pointage</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button onClick={fetchReports} className="refresh-btn">
               🔄 Actualiser
+            </button>
+            <input 
+              type="file" 
+              accept=".xlsx, .xls" 
+              onChange={handleImportEmployees}
+              id="import-employees-responsable"
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="import-employees-responsable" className="refresh-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', margin: 0, padding: '0.5rem 0.75rem' }}>
+              📤 Importer
+            </label>
+            <button 
+              onClick={handleExportEmployees}
+              className="refresh-btn"
+              disabled={reports.length === 0}
+              style={{ background: '#f1f5f9', color: '#475569', opacity: reports.length === 0 ? 0.5 : 1, cursor: reports.length === 0 ? 'not-allowed' : 'pointer' }}
+            >
+              📥 Exporter
             </button>
             <button 
               onClick={handleExportReports} 
@@ -129,7 +227,7 @@ const Responsable = ({ user }) => {
               disabled={reports.length === 0 || isExporting}
               style={{ background: '#10b981', color: 'white', opacity: reports.length === 0 || isExporting ? 0.5 : 1, cursor: isExporting ? 'not-allowed' : 'pointer' }}
             >
-              {isExporting ? '⏳ Export...' : '📥 Exporter'}
+              {isExporting ? '⏳ Export...' : '📊 Rapport'}
             </button>
           </div>
         </div>

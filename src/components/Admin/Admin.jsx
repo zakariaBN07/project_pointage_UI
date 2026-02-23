@@ -150,7 +150,31 @@ const Admin = () => {
       const workbook = XLSX.read(bstr, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      // Convert to array of arrays to find the header row accurately
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      
+      let headerRowIndex = -1;
+      // Deep scan the first 100 rows for anything that looks like a header
+      for (let i = 0; i < Math.min(rows.length, 100); i++) {
+        const row = rows[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        const isHeaderRow = row.some(cell => {
+          const s = String(cell || '').toLowerCase().trim();
+          return s.includes('nom') || s.includes('employé') || s.includes('pointage');
+        });
+
+        if (isHeaderRow) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      const data = headerRowIndex !== -1 
+        ? XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex })
+        : XLSX.utils.sheet_to_json(worksheet);
+
       setImportedPointage(data);
       fetchGestionnaires();
     };
@@ -268,7 +292,7 @@ const Admin = () => {
                 {importedPointage.map((row, index) => (
                   <tr key={index}>
                     <td>{row['Superviseur']}</td>
-                    <td>{row['Nom de l\'employé']}</td>
+                    <td>{row['Nom complet'] || row['Nom de l\'employé'] || row['Nom'] || row['Employé']}</td>
                     <td>{row['Pointage d\'entrée']}</td>
                     <td>{row['Pointage de sortie']}</td>
                     <td>
