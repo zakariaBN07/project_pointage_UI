@@ -65,7 +65,7 @@ const Historique = () => {
               onClick={() => setFilter('all')}
               style={{
                 padding: '0.5rem 1rem',
-                backgroundColor: filter === 'all' ? '#2563eb' : '#f1f5f9',
+                backgroundColor: filter === 'all' ? '#217346' : '#f1f5f9',
                 color: filter === 'all' ? 'white' : '#475569',
                 border: 'none',
                 borderRadius: '4px',
@@ -79,7 +79,7 @@ const Historique = () => {
               onClick={() => setFilter('success')}
               style={{
                 padding: '0.5rem 1rem',
-                backgroundColor: filter === 'success' ? '#10b981' : '#f1f5f9',
+                backgroundColor: filter === 'success' ? '#16a34a' : '#f1f5f9',
                 color: filter === 'success' ? 'white' : '#475569',
                 border: 'none',
                 borderRadius: '4px',

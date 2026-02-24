@@ -50,9 +50,9 @@
 
 .parametre-nav-item.active {
   background: var(--primary-color);
-  color: #ffffff;
+  color: #f0e8e8;
   border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 8px rgba(86, 26, 28, 0.4);
 }
 
 .parametre-content {
@@ -85,9 +85,9 @@
 
 .clear-history-btn {
   padding: 0.55rem 1rem;
-  background: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(86, 26, 28, 0.08);
+  color: #561a1c;
+  border: 1px solid rgba(86, 26, 28, 0.2);
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
@@ -96,8 +96,8 @@
 }
 
 .clear-history-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: #dc2626;
+  background: rgba(86, 26, 28, 0.15);
+  border-color: var(--primary-color);
 }
 
 @media (max-width: 768px) {

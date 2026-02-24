@@ -337,12 +337,10 @@ const Superviseur = ({ user }) => {
       'Statut': status || 'En attente'
     }));
 
-    addNotification(
-  <>
-    <strong>Superviseur : {supervisorName || 'Un superviseur'}</strong>{' '}
-    <strong>de siège : {supervisorsiege || 'Non spécifié'}</strong>{' '}
-    a exporté la liste de pointage final ({latestEmployees.length} employé(s))
-  </>,
+  addNotification(
+  `Superviseur : ${supervisorName || 'Un superviseur'} 
+de siège : ${supervisorsiege || 'Non spécifié'} 
+a exporté la liste de pointage final (${latestEmployees.length} employé(s))`,
   'success',
   dataToExport
 );
@@ -425,7 +423,7 @@ const Superviseur = ({ user }) => {
                 onClick={() => unmarkedCount > 0 ? setShowWarning(true) : handleExportFinalExcel()} 
                 className="export-btn" 
                 disabled={supervisedEmployees.length === 0 || isExporting}
-                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#2563eb', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
+                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
               >
                 {isExporting ? '⏳ Export en cours...' : 'Exporter Excel Final'}
               </button>

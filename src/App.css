@@ -13,7 +13,6 @@
   position: fixed;
   height: 100vh;
   border-right: 1px solid var(--border-color);
-  z-index: 100;
 }
 
 .sidebar-header {
@@ -55,9 +54,9 @@
 
 .nav-item.active {
   background-color: var(--primary-color);
-  color: #ffffff;
+  color: #f0e8e8;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 8px rgba(86, 26, 28, 0.4);
 }
 
 .main-content {
@@ -114,9 +113,9 @@
 }
 
 .logout-btn {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
-  border: 1px solid rgba(37, 99, 235, 0.3);
+  background: rgba(86, 26, 28, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(86, 26, 28, 0.4);
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-weight: 600;
@@ -126,7 +125,7 @@
 }
 
 .logout-btn:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(86, 26, 28, 0.4);
   border-color: var(--primary-color);
 }
 

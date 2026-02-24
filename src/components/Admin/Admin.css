@@ -40,7 +40,7 @@
 }
 
 .gestionnaires-table tbody tr:hover td {
-  background-color: rgba(37, 99, 235, 0.06);
+  background-color: rgba(86, 26, 28, 0.08);
 }
 
 .role-badge {
@@ -53,8 +53,8 @@
 }
 
 .role-superviseur {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
+  background: rgba(86, 26, 28, 0.1);
+  color: #561a1c;
 }
 
 .role-responsable {
@@ -92,7 +92,7 @@
 .btn-icon.edit:hover {
   color: #f0a0a2;
   border-color: var(--primary-color);
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(86, 26, 28, 0.15);
 }
 
 .btn-icon.delete:hover {
@@ -166,7 +166,7 @@
 
 .form-group input:focus, .form-group select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(86, 26, 28, 0.2);
 }
 
 .password-input-wrapper {
@@ -258,7 +258,7 @@
 
 .filter-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 2px rgba(86, 26, 28, 0.15);
 }
 
 .filter-input option {
@@ -368,7 +368,7 @@
 }
 
 .multiselect-option:hover {
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(86, 26, 28, 0.15);
 }
 
 .multiselect-option input[type="checkbox"] {
@@ -391,8 +391,8 @@
 .filter-active-badge {
   display: inline-block;
   padding: 0.2rem 0.6rem;
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
+  background: rgba(86, 26, 28, 0.1);
+  color: #561a1c;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -409,7 +409,7 @@
 
 .badge-success { background: #dcfce7; color: #166534; }
 .badge-warning { background: #fef9c3; color: #854d0e; }
-.badge-danger  { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+.badge-danger  { background: rgba(86, 26, 28, 0.1); color: #561a1c; }
 .badge-info    { background: #f1f5f9; color: #475569; }
 
 .pointage-table td {
@@ -454,7 +454,7 @@
   border-color: var(--primary-color);
   color: #f0e8e8;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 8px rgba(86, 26, 28, 0.4);
 }
 
 .pagination-btn:disabled {
@@ -493,6 +493,6 @@
 
 .import-zone:hover {
   border-color: var(--primary-color);
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(86, 26, 28, 0.08);
   color: var(--text-main);
 }
