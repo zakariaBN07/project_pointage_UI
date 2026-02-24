@@ -2,18 +2,23 @@ import React, { useContext, useState } from 'react';
 import { NotificationContext } from '../../context/NotificationContext';
 
 const Historique = () => {
-  const { history, clearHistory } = useContext(NotificationContext);
+  const { history, clearHistory, deleteFromHistory } = useContext(NotificationContext);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [filter, setFilter] = useState('all');
 
   const getTimeAgo = (timestamp) => {
-    const seconds = Math.floor((new Date() - timestamp) / 1000);
-    if (seconds < 60) return 'À l\'instant';
-    if (seconds < 3600) return `Il y a ${Math.floor(seconds / 60)} min`;
-    if (seconds < 86400) return `Il y a ${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `Il y a ${Math.floor(seconds / 86400)}j`;
-    return `Il y a ${Math.floor(seconds / 604800)}s`;
-  };
+  if (!timestamp) return 'Date inconnue';
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return 'Date inconnue';
+  const seconds = Math.floor((new Date() - date) / 1000);
+
+  if (seconds <= 5) return 'À l\'instant'; // anything within 5 seconds
+  if (seconds < 60) return 'À l\'instant';
+  if (seconds < 3600) return `Il y a ${Math.floor(seconds / 60)} min`;
+  if (seconds < 86400) return `Il y a ${Math.floor(seconds / 3600)}h`;
+  if (seconds < 604800) return `Il y a ${Math.floor(seconds / 86400)}j`;
+  return `Il y a ${Math.floor(seconds / 604800)}sem`;
+};
 
   const filteredHistory = filter === 'all' ? history : history.filter(n => n.type === filter);
 
@@ -60,7 +65,7 @@ const Historique = () => {
               onClick={() => setFilter('all')}
               style={{
                 padding: '0.5rem 1rem',
-                backgroundColor: filter === 'all' ? '#217346' : '#f1f5f9',
+                backgroundColor: filter === 'all' ? '#2563eb' : '#f1f5f9',
                 color: filter === 'all' ? 'white' : '#475569',
                 border: 'none',
                 borderRadius: '4px',
@@ -74,7 +79,7 @@ const Historique = () => {
               onClick={() => setFilter('success')}
               style={{
                 padding: '0.5rem 1rem',
-                backgroundColor: filter === 'success' ? '#16a34a' : '#f1f5f9',
+                backgroundColor: filter === 'success' ? '#10b981' : '#f1f5f9',
                 color: filter === 'success' ? 'white' : '#475569',
                 border: 'none',
                 borderRadius: '4px',
@@ -159,16 +164,41 @@ const Historique = () => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>{notification.message}</h3>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: '#999',
-                      backgroundColor: '#e2e8f0',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {getTimeAgo(notification.timestamp)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#999',
+                        backgroundColor: '#e2e8f0',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {getTimeAgo(notification.timestamp)}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Supprimer cette notification ?')) {
+                            deleteFromHistory(notification.id);
+                          }
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '4px',
+                          fontSize: '1rem'
+                        }}
+                        title="Supprimer"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <span style={{

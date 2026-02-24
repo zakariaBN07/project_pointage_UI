@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import './Login.css';
+import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ name: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [forgotData, setForgotData] = useState({ username: '', email: '' });
   const [error, setError] = useState('');
@@ -92,9 +94,11 @@ const Login = ({ onLogin }) => {
   return (
     <div className="login-wrapper">
       <div className="login-card">
+        <div className="login-logo" style={{ marginBottom: '1.5rem'  }}>
+          <img src={logoImg} alt="Logo" style={{ height: '80px', width: 'auto', objectFit: 'contain' }} />
+        </div>
         {!forgotPassword ? (
           <>
-            <h2>Système de Pointage - Connexion</h2>
             <form onSubmit={handleSubmit}>
               <div className="login-group">
                 <label>Nom / Utilisateur</label>
@@ -102,19 +106,32 @@ const Login = ({ onLogin }) => {
                   type="text" 
                   name="name" 
                   value={credentials.name} 
+                  placeholder=''
                   onChange={handleChange} 
                   required 
                 />
               </div>
               <div className="login-group">
                 <label>Mot de passe</label>
-                <input 
-                  type="password" 
-                  name="password" 
-                  value={credentials.password} 
-                  onChange={handleChange} 
-                  required 
-                />
+                <div className="password-input-wrapper">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password" 
+                    value={credentials.password} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <button 
+                    type="button" 
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  >
+                    <span className="material-symbols-outlined">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
               {error && <p className="login-error">{error}</p>}
               <button type="submit" className="login-submit">Se connecter</button>

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './ResetPassword.css';
+import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
 
 const ResetPassword = ({ onResetComplete }) => {
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,6 +88,9 @@ const ResetPassword = ({ onResetComplete }) => {
   return (
     <div className="reset-wrapper">
       <div className="reset-card">
+        <div className="login-logo">
+          <img src={logoImg} alt="Logo" style={{ height: '80px', width: 'auto', objectFit: 'contain' }} />
+        </div>
         <h2>Réinitialiser le mot de passe</h2>
         {error && !success && <p className="reset-error">{error}</p>}
         {success && <p className="reset-success">{success}</p>}
@@ -93,23 +99,47 @@ const ResetPassword = ({ onResetComplete }) => {
           <form onSubmit={handleSubmit}>
             <div className="reset-group">
               <label>Nouveau mot de passe</label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required
-                disabled={loading}
-              />
+              <div className="password-input-wrapper">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required
+                  disabled={loading}
+                />
+                <button 
+                  type="button" 
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  <span className="material-symbols-outlined">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
             </div>
             <div className="reset-group">
               <label>Confirmer le mot de passe</label>
-              <input 
-                type="password" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                required
-                disabled={loading}
-              />
+              <div className="password-input-wrapper">
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  required
+                  disabled={loading}
+                />
+                <button 
+                  type="button" 
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  <span className="material-symbols-outlined">
+                    {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
             </div>
             <button 
               type="submit" 

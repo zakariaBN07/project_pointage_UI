@@ -14,7 +14,7 @@ const Parametre = () => {
             className={`parametre-nav-item ${activeTab === 'historique' ? 'active' : ''}`}
             onClick={() => setActiveTab('historique')}
           >
-            <span>📜</span>
+            <span>📜</span> 
             <span>Historique</span>
           </button>
         </nav>

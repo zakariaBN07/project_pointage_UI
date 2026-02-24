@@ -65,7 +65,17 @@ const Notification = () => {
                       onClick={() => notification.data && setSelectedNotification(notification)}
                     >
                       <div className="notification-card-header">
-                        <h3>{notification.message}</h3>
+                        <h3>
+                          {notification.data && notification.data[0] ? (() => {
+                            const sup = notification.data[0]['Superviseur'] || '';
+                            const sig = notification.data[0]['Siège'] || '';
+                            return (
+                              <>
+                                Superviseur <strong>{sup}</strong> — Siège <strong>{sig}</strong> a exporté la liste de pointage final ({notification.data.length} employé(s))
+                              </>
+                            );
+                          })() : notification.message}
+                        </h3>
                         <button 
                           className="card-dismiss-btn"
                           onClick={(e) => {
@@ -92,47 +102,59 @@ const Notification = () => {
         </div>
       )}
 
-      {selectedNotification && selectedNotification.data && (
-        <div className="excel-preview-modal">
-          <div className="excel-preview-content">
-            <div className="excel-preview-header">
-              <div>
-                <h2>📊 Détail de l'Exportation</h2>
-                <p className="excel-preview-subtitle">{selectedNotification.message}</p>
-              </div>
+      {selectedNotification && selectedNotification.data && (() => {
+        const firstRow = selectedNotification.data[0] || {};
+        const excludedKeys = new Set(['Superviseur', 'Siège']);
+        const tableKeys = Object.keys(firstRow).filter(k => !excludedKeys.has(k));
+        return (
+          <div className="excel-preview-modal">
+            <div className="excel-preview-content" style={{ position: 'relative', padding: '2rem', backgroundColor: 'white', borderRadius: '8px' }}>
               <button 
                 className="close-btn"
                 onClick={() => setSelectedNotification(null)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer'
+                }}
               >
                 ✕
               </button>
-            </div>
-            <div className="excel-preview-table">
-              <table>
-                <thead>
-                  <tr>
-                    {selectedNotification.data.length > 0 && Object.keys(selectedNotification.data[0]).map((key) => (
-                      <th key={key}>{key}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedNotification.data.map((row, index) => (
-                    <tr key={index}>
-                      {Object.values(row).map((value, i) => (
-                        <td key={i}>{value}</td>
+              <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>📊 Détail de l'Exportation</h2>
+              <p style={{ color: '#999', marginBottom: '1rem' }}>
+                {selectedNotification.message}
+              </p>
+              <div className="excel-preview-table" style={{ padding: 0, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                      {tableKeys.map((key) => (
+                        <th key={key} style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>{key}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="excel-preview-footer">
-              <p>Total: {selectedNotification.data.length} employé(s)</p>
+                  </thead>
+                  <tbody>
+                    {selectedNotification.data.map((row, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        {tableKeys.map((key, i) => (
+                          <td key={i} style={{ padding: '0.75rem' }}>{row[key]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ marginTop: '1rem', color: '#999', textAlign: 'right' }}>
+                Total: {selectedNotification.data.length} employé(s)
+              </p>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

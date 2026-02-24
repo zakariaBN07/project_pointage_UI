@@ -1,19 +1,22 @@
 :root {
-  --primary-color: #1a5a54;
-  --primary-hover: #154944;
-  --bg-main: #f7f9f8;
-  --bg-sidebar: #1a5a54;
-  --sidebar-text: #ffffff;
-  --sidebar-hover: #0f3b37;
-  --text-main: #1a202c;
-  --text-muted: #6b7280;
-  --border-color: #e5e7eb;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: rgba(37, 99, 235, 0.1);
+  --bg-main: #f8fafc;
+  --bg-sidebar: #1e293b;
+  --bg-surface: #f1f5f9;
+  --bg-raised: #ffffff;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover: rgba(37, 99, 235, 0.15);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
   --card-bg: #ffffff;
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -47,6 +50,7 @@ button {
   box-shadow: var(--shadow);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
 }
 
 .btn {
@@ -65,7 +69,7 @@ button {
 
 .btn-primary {
   background-color: var(--primary-color);
-  color: white;
+  color: #f0e8e8;
 }
 
 .btn-primary:hover {
@@ -86,7 +90,7 @@ button {
 
 .badge-success { background: #dcfce7; color: #166534; }
 .badge-warning { background: #fef9c3; color: #854d0e; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-danger  { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
 
 table {
   width: 100%;
@@ -102,7 +106,7 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  background-color: #f8faf9;
+  background-color: var(--bg-surface);
 }
 
 td {
@@ -112,6 +116,6 @@ td {
 }
 
 tr:hover td {
-  background-color: #f0f9f8;
+  background-color: rgba(37, 99, 235, 0.05);
   transition: background-color 0.2s ease;
 }

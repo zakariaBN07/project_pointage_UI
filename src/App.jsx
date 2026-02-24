@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import './App.css'
+import logoImg from './assets/images/logos/ca2e-removebg-preview.png'
 import Login from './components//login/Login'
 import ResetPassword from './components/login/ResetPassword'
 import Admin from './components/Admin/Admin'
@@ -18,22 +19,16 @@ function App() {
     const token = params.get('token');
     if (token) {
       setShowResetPassword(true);
-    } else {
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
     }
+    // No longer checking localStorage on startup to ensure login page is always first
   }, []);
 
   const handleLogin = (userData) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('user');
   };
 
   const handleResetComplete = () => {
@@ -53,8 +48,8 @@ function App() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <span className="logo-icon">📊</span>
-          <span>Pointage Manager</span>
+          <img src={logoImg} alt="Logo" className="logo-icon" style={{ height: '66px', width: 'auto', objectFit: 'contain' }} />
+          {/* <span>Pointage Manager</span> */}
         </div>
         <nav className="sidebar-nav">
           <div 

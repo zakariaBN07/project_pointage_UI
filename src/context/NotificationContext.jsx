@@ -5,19 +5,23 @@ export const NotificationContext = createContext();
 const STORAGE_KEY = 'notifications';
 const HISTORY_KEY = 'notifications_history';
 
+// Save notifications to history with deduplication
 const saveToHistorique = (notifications) => {
   try {
-    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const storedHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const newHistory = [
       ...notifications.map(n => ({
         ...n,
-        timestamp: n.timestamp instanceof Date ? n.timestamp.toISOString() : n.timestamp,
+        timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
       })),
-      ...history,
-    ];
+      ...storedHistory,
+    ].filter((v, i, a) => a.findIndex(n => n.id === v.id) === i); // Remove duplicates by id
+
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    return newHistory;
   } catch (err) {
     console.error('Error saving to notification history:', err);
+    return [];
   }
 };
 
@@ -25,6 +29,7 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [history, setHistory] = useState([]);
 
+  // Load history from localStorage on mount
   useEffect(() => {
     const storedHistory = localStorage.getItem(HISTORY_KEY);
     if (storedHistory) {
@@ -32,7 +37,7 @@ export const NotificationProvider = ({ children }) => {
         const parsed = JSON.parse(storedHistory);
         const historyWithDates = parsed.map(n => ({
           ...n,
-          timestamp: new Date(n.timestamp),
+          timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
         }));
         setHistory(historyWithDates);
       } catch (err) {
@@ -40,14 +45,13 @@ export const NotificationProvider = ({ children }) => {
       }
     }
 
-    // Save active notifications to history before page unload/refresh
+    // Move active notifications to history before page unload/refresh
     const handleBeforeUnload = () => {
       const currentNotifications = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       if (currentNotifications.length > 0) {
-        // Move all active notifications to history before page closes
-        saveToHistorique(currentNotifications);
-        // Clear the notifications storage
+        const updatedHistory = saveToHistorique(currentNotifications);
         localStorage.removeItem(STORAGE_KEY);
+        setHistory(updatedHistory);
       }
     };
 
@@ -55,10 +59,12 @@ export const NotificationProvider = ({ children }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
+  // Keep active notifications in localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
 
+  // Add a new notification
   const addNotification = useCallback((message, type = 'info', data = null) => {
     const id = Date.now();
     const notification = {
@@ -72,30 +78,42 @@ export const NotificationProvider = ({ children }) => {
     return id;
   }, []);
 
+  // Dismiss a single notification
   const dismissNotification = useCallback((id) => {
     setNotifications(prev => {
       const dismissed = prev.find(n => n.id === id);
       if (dismissed) {
-        saveToHistorique([dismissed]);
-        setHistory(prevHistory => [dismissed, ...prevHistory]);
+        const updatedHistory = saveToHistorique([dismissed]);
+        setHistory(updatedHistory);
       }
       return prev.filter(n => n.id !== id);
     });
   }, []);
 
+  // Clear all active notifications
   const clearAll = useCallback(() => {
     setNotifications(prev => {
       if (prev.length > 0) {
-        saveToHistorique(prev);
-        setHistory(prevHistory => [...prev, ...prevHistory]);
+        const updatedHistory = saveToHistorique(prev);
+        setHistory(updatedHistory);
       }
       return [];
     });
   }, []);
 
+  // Clear history completely
   const clearHistory = useCallback(() => {
     localStorage.removeItem(HISTORY_KEY);
     setHistory([]);
+  }, []);
+
+  // Delete a single notification from history
+  const deleteFromHistory = useCallback((id) => {
+    setHistory(prev => {
+      const updatedHistory = prev.filter(n => n.id !== id);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
+      return updatedHistory;
+    });
   }, []);
 
   return (
@@ -106,8 +124,9 @@ export const NotificationProvider = ({ children }) => {
       dismissNotification,
       clearAll,
       clearHistory,
+      deleteFromHistory,
     }}>
       {children}
     </NotificationContext.Provider>
   );
-};
+}; 

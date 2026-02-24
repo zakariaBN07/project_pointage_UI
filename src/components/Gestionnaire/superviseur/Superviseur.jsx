@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext , useRef  } from 'react';
 import * as XLSX from 'xlsx';
 import { NotificationContext } from '../../../context/NotificationContext';
 import './Superviseur.css';
@@ -11,12 +11,14 @@ const Superviseur = ({ user }) => {
   const [employeesPointage, setEmployeesPointage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [supervisorName, setSupervisorName] = useState(user?.name || '');
+  const [supervisorName] = useState(user?.name || '');
+  const [supervisorsiege, setSupervisorsiege] = useState(user?.siege || '');
   const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'employé' });
   const [editingId, setEditingId] = useState(null);
   const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'employé' });
   const [showWarning, setShowWarning] = useState(false);
-
+  
+  const hasNotifiedRef = useRef(false); // <- add this
   // Filter for only regular employees
   const supervisedEmployees = employeesPointage.filter(emp => emp.role === 'employé' || !emp.role);
   
@@ -269,61 +271,95 @@ const Superviseur = ({ user }) => {
         }
       }
       
-      if (importCount > 0) {
-        addNotification(`${importCount} employé(s) importé(s) avec succès`, 'success');
-      }
+      // if (importCount > 0) {
+      //   addNotification(`${importCount} employé(s) importé(s) avec succès`, 'success');
+      // }
       fetchEmployeesToSupervise();
     };
     reader.readAsBinaryString(file);
   };
 
   const handleExportFinalExcel = async () => {
-    setIsExporting(true);
-    try {
-      const url = user?.id 
-        ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
-        : `${API_EMPLOYEE}/employees`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error('Failed to fetch latest employee data');
-        setIsExporting(false);
-        return;
-      }
+  if (hasNotifiedRef.current) return; // prevent double-clicks
+  hasNotifiedRef.current = true; // lock
 
-      const latestData = await response.json();
-      const latestEmployees = latestData.filter(emp => emp.role === 'employé' || !emp.role);
+  setIsExporting(true);
 
-      const dataToExport = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
-        'Superviseur': supervisorName || 'Non spécifié',
-        'Nom complet': name,
-        'Matricule': matricule,
-        'Pointage d\'entrée': pointageEntree || '-',
-        'Pointage de sortie': pointageSortie || '-',
-        'Statut': status || 'En attente'
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Pointage Final");
-      XLSX.writeFile(workbook, "Pointage_Final_Employees.xlsx");
-
-      addNotification(
-        `${user.name || 'Un superviseur'} a exporté la liste de pointage final (${latestEmployees.length} employé(s))`,
-        'success',
-        dataToExport
-      );
-    } catch (error) {
-      console.error("Error exporting pointage:", error);
-    } finally {
-      setIsExporting(false);
+  try {
+    const url = user?.id 
+      ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
+      : `${API_EMPLOYEE}/employees`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error('Failed to fetch latest employee data');
+      return;
     }
-  };
+
+    const latestData = await response.json();
+    const latestEmployees = latestData.filter(emp => emp.role === 'employé' || !emp.role);
+
+    if (!latestEmployees.length) {
+      alert("Aucun employé à exporter !");
+      return;
+    }
+
+    const title = `${supervisorName || 'Non spécifié'} (${supervisorsiege || 'Non spécifié'}) a exporté la liste de pointage final (${latestEmployees.length} employé(s))`;
+
+    const headers = ['Nom complet', 'Matricule', "Pointage d'entrée", 'Pointage de sortie', 'Statut'];
+    const rows = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => [
+      name,
+      matricule,
+      pointageEntree || '-',
+      pointageSortie || '-',
+      status || 'En attente'
+    ]);
+
+    const aoa = [
+      [title],
+      [],
+      headers,
+      ...rows
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pointage Final");
+    XLSX.writeFile(workbook, "Pointage_Final_Employees.xlsx");
+
+    const dataToExport = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
+  
+      'Nom complet': name,
+      'Matricule': matricule,
+      'Pointage d\'entrée': pointageEntree || '-',
+      'Pointage de sortie': pointageSortie || '-',
+      'Statut': status || 'En attente'
+    }));
+
+    addNotification(
+  <>
+    <strong>Superviseur : {supervisorName || 'Un superviseur'}</strong>{' '}
+    <strong>de siège : {supervisorsiege || 'Non spécifié'}</strong>{' '}
+    a exporté la liste de pointage final ({latestEmployees.length} employé(s))
+  </>,
+  'success',
+  dataToExport
+);
+
+  } catch (error) {
+    console.error("Error exporting pointage:", error);
+  } finally {
+    setIsExporting(false);
+    hasNotifiedRef.current = false; // unlock
+  }
+};
 
   return (
     <div className="superviseur-container">
       <h1>Espace Superviseur</h1>
       
-      <section className="own-pointage">
+      {/* <section className="own-pointage">
         <h2>Mon Pointage Personnel</h2>
         <div className="status-section">
           <h3>Statut Actuel: <span className={status === 'Pointé' ? 'status-active' : 'status-inactive'}>{status}</span></h3>
@@ -357,9 +393,9 @@ const Superviseur = ({ user }) => {
             </table>
           )}
         </div>
-      </section>
+      </section> */}
 
-      <hr className="divider" />
+      {/* <hr className="divider" /> */}
 
       <section className="employees-management">
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -367,10 +403,10 @@ const Superviseur = ({ user }) => {
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <input 
               type="text" 
-              placeholder="Votre nom (Superviseur)" 
-              value={supervisorName}
-              onChange={(e) => setSupervisorName(e.target.value)}
-              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              placeholder="Siège" 
+              value={supervisorsiege}
+              onChange={(e) => setSupervisorsiege(e.target.value)}
+              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
             />
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input 
@@ -383,21 +419,13 @@ const Superviseur = ({ user }) => {
               <label htmlFor="import-employees" className="export-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', fontWeight: 'bold', margin: 0 }}>
                 📤 Importer
               </label>
-              <button 
-                onClick={handleExportEmployees}
-                className="export-btn"
-                disabled={supervisedEmployees.length === 0}
-                style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: supervisedEmployees.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 ? 0.5 : 1 }}
-              >
-                📥 Exporter
-              </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button 
                 onClick={() => unmarkedCount > 0 ? setShowWarning(true) : handleExportFinalExcel()} 
                 className="export-btn" 
                 disabled={supervisedEmployees.length === 0 || isExporting}
-                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
+                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#2563eb', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
               >
                 {isExporting ? '⏳ Export en cours...' : 'Exporter Excel Final'}
               </button>
