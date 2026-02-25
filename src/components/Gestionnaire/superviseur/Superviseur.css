@@ -1,80 +1,83 @@
-/* ===== Superviseur (Dashboard Style) ===== */
-
-.superviseur-view {
+.superviseur-container {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-.superviseur-view h1 {
-  margin: 0 0 1rem 0;
+.superviseur-container h1 {
+  margin: 0 0 1.5rem 0;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
-/* ===== Stats Section ===== */
-
-.stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+.superviseur-container h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 1rem;
 }
 
-.stat-card {
+.own-pointage {
   background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   border: 1px solid var(--border-color);
-  transition: border-color 0.2s ease;
 }
 
-.stat-card:hover {
-  border-color: var(--primary-color);
+.status-section {
+  background: var(--bg-surface);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
 }
 
-.stat-label {
-  font-size: 0.8rem;
+.status-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.status-active {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.status-inactive {
   color: var(--text-muted);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 1.2rem;
 }
 
-.stat-value {
-  font-size: 2rem;
+.history-section {
+  margin-top: 1.5rem;
+}
+
+.history-section h3 {
+  font-size: 0.95rem;
   font-weight: 700;
-  color: var(--primary-color);
+  margin-bottom: 1rem;
+  color: var(--text-main);
 }
 
-.stat-trend {
-  font-size: 0.75rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  width: fit-content;
+.history-table {
+  width: 100%;
+}
+
+.history-table th {
+  background-color: var(--bg-surface);
   font-weight: 600;
 }
 
-.trend-up {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+.history-table tbody tr:hover td {
+  background-color: rgba(86, 26, 28, 0.08);
 }
 
-/* ===== Reports Card ===== */
-
-.reports-card {
-  background: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
-}
-
-.section-title {
+.management-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -82,18 +85,119 @@
   gap: 1rem;
 }
 
-.section-title h2 {
-  margin: 0;
-  font-size: 1.1rem;
+.search-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  background: var(--bg-surface);
+  color: var(--text-main);
+  transition: border-color 0.2s ease;
+}
+
+.search-bar input::placeholder {
+  color: rgba(158, 152, 154, 0.5);
+}
+
+.search-bar input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(86, 26, 28, 0.15);
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.status-btn-group {
+  display: flex;
+  background: var(--bg-surface);
+  padding: 0.25rem;
+  border-radius: 8px;
+  gap: 0.25rem;
+  border: 1px solid var(--border-color);
+}
+
+.status-toggle-btn {
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.status-toggle-btn.active.present { background: var(--bg-raised); color: var(--success); box-shadow: var(--shadow); }
+.status-toggle-btn.active.absent  { background: var(--bg-raised); color: var(--danger);  box-shadow: var(--shadow); }
+.status-toggle-btn.active.sortie  { background: var(--bg-raised); color: var(--warning); box-shadow: var(--shadow); }
+
+.status-toggle-btn:hover:not(.active) {
+  background: rgba(158, 152, 154, 0.1);
+  color: var(--text-main);
+}
+
+.management-card {
+  composes: card;
+}
+
+.add-employee-form {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.add-employee-form h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
-.refresh-btn {
-  background: var(--bg-raised);
-  color: var(--text-muted);
+.add-employee-form form {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.add-employee-form input {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--border-color);
-  padding: 0.55rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: border-color 0.2s ease;
+  background-color: var(--bg-raised);
+  color: var(--text-main);
+}
+
+.add-employee-form input::placeholder {
+  color: rgba(158, 152, 154, 0.5);
+}
+
+.add-employee-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(86, 26, 28, 0.15);
+}
+
+.pointage-btn {
+  background: var(--primary-color);
+  color: #f0e8e8;
+  border: none;
+  padding: 0.7rem 1.2rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
@@ -101,40 +205,37 @@
   font-size: 0.85rem;
 }
 
-.refresh-btn:hover:not(:disabled) {
-  background: var(--bg-surface);
-  color: var(--text-main);
-  border-color: var(--text-muted);
+.pointage-btn:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 2px 8px rgba(86, 26, 28, 0.4);
 }
 
-.refresh-btn:disabled {
+.status-btn {
+  padding: 0.5rem 0.85rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.status-btn.present-btn {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-btn.present-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.status-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* ===== Table ===== */
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.table-responsive table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table-responsive th {
-  text-align: left;
-  padding: 0.85rem;
-  background-color: var(--bg-surface);
-  font-weight: 600;
-}
-
-.table-responsive td {
-  padding: 0.85rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.table-responsive tbody tr:hover td {
-  background-color: rgba(86, 26, 28, 0.08);
+.action-btns {
+  display: flex;
+  gap: 0.5rem;
 }

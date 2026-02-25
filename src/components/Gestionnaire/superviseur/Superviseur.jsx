@@ -35,9 +35,9 @@ const Superviseur = ({ user }) => {
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
       if (response.ok) {
-        const data = await response.json();
-        // Initialize with default status if not present
-        const initializedData = data.map(emp => ({
+        const rawData = await response.json();
+        // Initialize with default status if not present and remove sensitive data
+        const initializedData = rawData.map(({ password, ...emp }) => ({
           ...emp,
           pointageEntree: emp.pointageEntree || '-',
           pointageSortie: emp.pointageSortie || '-',
@@ -295,8 +295,10 @@ const Superviseur = ({ user }) => {
       return;
     }
 
-    const latestData = await response.json();
-    const latestEmployees = latestData.filter(emp => emp.role === 'employé' || !emp.role);
+    const rawData = await response.json();
+    const latestEmployees = rawData
+      .map(({ password, ...rest }) => rest)
+      .filter(emp => emp.role === 'employé' || !emp.role);
 
     if (!latestEmployees.length) {
       alert("Aucun employé à exporter !");
