@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Historique from './Historique';
+import Historique from './Historique/Historique';
 import './Parametre.css';
 
 const Parametre = () => {

@@ -4,9 +4,7 @@ import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
 
 const ResetPassword = ({ onResetComplete }) => {
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -101,44 +99,24 @@ const ResetPassword = ({ onResetComplete }) => {
               <label>Nouveau mot de passe</label>
               <div className="password-input-wrapper">
                 <input 
-                  type={showPassword ? "text" : "password"} 
+                  type="password" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   required
                   disabled={loading}
                 />
-                <button 
-                  type="button" 
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                >
-                  <span className="material-symbols-outlined">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
               </div>
             </div>
             <div className="reset-group">
               <label>Confirmer le mot de passe</label>
               <div className="password-input-wrapper">
                 <input 
-                  type={showConfirmPassword ? "text" : "password"} 
+                  type="password" 
                   value={confirmPassword} 
                   onChange={(e) => setConfirmPassword(e.target.value)} 
                   required
                   disabled={loading}
                 />
-                <button 
-                  type="button" 
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                >
-                  <span className="material-symbols-outlined">
-                    {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
               </div>
             </div>
             <button 

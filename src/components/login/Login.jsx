@@ -4,7 +4,6 @@ import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ name: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [forgotData, setForgotData] = useState({ username: '', email: '' });
   const [error, setError] = useState('');
@@ -40,7 +39,8 @@ const Login = ({ onLogin }) => {
       });
 
       if (response.ok) {
-        const user = await response.json();
+        const rawUser = await response.json();
+        const { password, ...user } = rawUser;
         onLogin(user);
       } else if (response.status === 401) {
         setError('Identifiants invalides.');
@@ -115,22 +115,12 @@ const Login = ({ onLogin }) => {
                 <label>Mot de passe</label>
                 <div className="password-input-wrapper">
                   <input 
-                    type={showPassword ? "text" : "password"} 
+                    type="password" 
                     name="password" 
                     value={credentials.password} 
                     onChange={handleChange} 
                     required 
                   />
-                  <button 
-                    type="button" 
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  >
-                    <span className="material-symbols-outlined">
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
                 </div>
               </div>
               {error && <p className="login-error">{error}</p>}

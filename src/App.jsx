@@ -8,6 +8,9 @@ import Superviseur from './components/Gestionnaire/superviseur/Superviseur'
 import Responsable from './components/Gestionnaire/responsable/Responsable'
 import Notification from './components/Notification/Notification'
 import Parametre from './components/Parametre/Parametre'
+import Liste_des_Gestionnaires from './Lists/Liste_des_Gestionnaires/Liste_des_Gestionnaires'
+import Vue_Globale_du_Pointage from './Lists/Liste_vue_globale_du_pointage/Vue_Globale_du_Pointage'
+import { MdHome } from "react-icons/md";
 
 function App() {
   const [user, setUser] = useState(null)
@@ -48,8 +51,13 @@ function App() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <img src={logoImg} alt="Logo" className="logo-icon" style={{ height: '66px', width: 'auto', objectFit: 'contain' }} />
-          {/* <span>Pointage Manager</span> */}
+          <img 
+            src={logoImg} 
+            alt="Logo" 
+            className="logo-icon" 
+            style={{ height: '66px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }} 
+            onClick={() => setCurrentPage('dashboard')}
+          />
         </div>
         <nav className="sidebar-nav">
           <div 
@@ -58,25 +66,36 @@ function App() {
             style={{ cursor: 'pointer' }}
           >
             <span></span>
-            <span>Dashboard</span>
+            <MdHome size={24} color="#4f46e5" /> Home
           </div>
-          {/* <div className="nav-item">
-            <span>👥</span>
-            <span>Équipes</span>
-          </div>
-          <div className="nav-item">
-            <span>📅</span>
-            <span>Rapports</span>
-          </div> */}
+          
           {user.role === 'admin' && (
-            <div 
-              className={`nav-item ${currentPage === 'parametre' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('parametre')}
-              style={{ cursor: 'pointer' }}
-            >
-              <span>⚙️</span>
-              <span>Paramètres</span>
-            </div>
+            <>
+              <div 
+                className={`nav-item ${currentPage === 'lists' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('lists')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span>👥</span>
+                <span>Lists</span>
+              </div>
+              <div 
+                className={`nav-item ${currentPage === 'pointage' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('pointage')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span>📅</span>
+                <span>Pointage</span>
+              </div>
+              <div 
+                className={`nav-item ${currentPage === 'parametre' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('parametre')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span>⚙️</span>
+                <span>Paramètres</span>
+              </div>
+            </>
           )}
         </nav>
         {user.role === 'admin' && (
@@ -102,6 +121,10 @@ function App() {
         <main className="content-body">
           {currentPage === 'parametre' && user.role === 'admin' ? (
             <Parametre />
+          ) : currentPage === 'lists' && user.role === 'admin' ? (
+            <Liste_des_Gestionnaires />
+          ) : currentPage === 'pointage' && user.role === 'admin' ? (
+            <Vue_Globale_du_Pointage />
           ) : (
             <>
               {user.role === 'admin' && <Admin />}

@@ -12,6 +12,16 @@
   color: var(--text-main);
 }
 
+.success-toast {
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  padding: 0.9rem 1rem;
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.9rem;
+}
+
 .section-title {
   display: flex;
   justify-content: space-between;
@@ -145,6 +155,12 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.form-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
 }
 
 .form-group input, .form-group select {

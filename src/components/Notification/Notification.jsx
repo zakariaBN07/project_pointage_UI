@@ -102,59 +102,74 @@ const Notification = () => {
         </div>
       )}
 
-      {selectedNotification && selectedNotification.data && (() => {
-        const firstRow = selectedNotification.data[0] || {};
-        const excludedKeys = new Set(['Superviseur', 'Siège']);
-        const tableKeys = Object.keys(firstRow).filter(k => !excludedKeys.has(k));
-        return (
-          <div className="excel-preview-modal">
-            <div className="excel-preview-content" style={{ position: 'relative', padding: '2rem', backgroundColor: 'white', borderRadius: '8px' }}>
-              <button 
-                className="close-btn"
-                onClick={() => setSelectedNotification(null)}
-                style={{
-                  position: 'absolute',
-                  top: '1rem',
-                  right: '1rem',
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕
-              </button>
-              <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>📊 Détail de l'Exportation</h2>
-              <p style={{ color: '#999', marginBottom: '1rem' }}>
-                {selectedNotification.message}
-              </p>
-              <div className="excel-preview-table" style={{ padding: 0, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-                      {tableKeys.map((key) => (
-                        <th key={key} style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>{key}</th>
+      {selectedNotification && selectedNotification.data && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2100
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            padding: '2rem',
+            position: 'relative'
+          }}>
+            <button
+              onClick={() => setSelectedNotification(null)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+            <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>📊 Détail de l'Exportation</h2>
+            <p style={{ color: '#999', marginBottom: '1rem' }}>{selectedNotification.message}</p>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '0.9rem'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                    {selectedNotification.data.length > 0 && Object.keys(selectedNotification.data[0]).map((key) => (
+                      <th key={key} style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>{key}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedNotification.data.map((row, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      {Object.values(row).map((value, i) => (
+                        <td key={i} style={{ padding: '0.75rem' }}>{value}</td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {selectedNotification.data.map((row, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        {tableKeys.map((key, i) => (
-                          <td key={i} style={{ padding: '0.75rem' }}>{row[key]}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p style={{ marginTop: '1rem', color: '#999', textAlign: 'right' }}>
-                Total: {selectedNotification.data.length} employé(s)
-              </p>
+                  ))}
+                </tbody>
+              </table>
             </div>
+            <p style={{ marginTop: '1rem', color: '#999', textAlign: 'right' }}>
+              Total: {selectedNotification.data.length} employé(s)
+            </p>
           </div>
-        );
-      })()}
+        </div>
+      )}
     </div>
   );
 };
