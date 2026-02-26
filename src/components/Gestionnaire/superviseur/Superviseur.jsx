@@ -1,33 +1,28 @@
-import React, { useState, useEffect, useContext , useRef  } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
 import { NotificationContext } from '../../../context/NotificationContext';
+import { 
+  FaSync, 
+  FaFileExport, 
+  FaFileImport, 
+  FaClipboardList,
+  FaUsers,
+  FaUserCheck,
+  FaUserTimes,
+  FaArrowRight
+} from 'react-icons/fa';
 import './Superviseur.css';
 
 const Superviseur = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
-  const [pointage, setPointage] = useState([]);
-  const [status, setStatus] = useState('En attente');
-  const [employeesPointage, setEmployeesPointage] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [supervisorName] = useState(user?.name || '');
-  const [supervisorsiege, setSupervisorsiege] = useState(user?.siege || '');
-  const [newEmployee, setNewEmployee] = useState({ name: '', matricule: '', role: 'employé' });
-  const [editingId, setEditingId] = useState(null);
-  const [editEmployee, setEditEmployee] = useState({ name: '', matricule: '', role: 'employé' });
-  const [showWarning, setShowWarning] = useState(false);
-  
-  const hasNotifiedRef = useRef(false); // <- add this
-  // Filter for only regular employees
-  const supervisedEmployees = employeesPointage.filter(emp => emp.role === 'employé' || !emp.role);
-  
-  // Count employees with status "En attente"
-  const unmarkedEmployees = supervisedEmployees.filter(emp => emp.status === 'En attente');
-  const unmarkedCount = unmarkedEmployees.length;
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Fetch employees to supervise from API
-  const fetchEmployeesToSupervise = async () => {
+  const fetchReports = async () => {
     try {
       setLoading(true);
       const url = user?.id 
@@ -35,159 +30,37 @@ const Superviseur = ({ user }) => {
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
       if (response.ok) {
-        const rawData = await response.json();
-        // Initialize with default status if not present and remove sensitive data
-        const initializedData = rawData.map(({ password, ...emp }) => ({
-          ...emp,
-          pointageEntree: emp.pointageEntree || '-',
-          pointageSortie: emp.pointageSortie || '-',
-          status: emp.status || 'En attente'
+        const data = await response.json();
+        const formattedData = data.map(emp => ({
+          id: emp.id,
+          name: emp.name,
+          status: emp.status || 'En attente',
+          arrivee: emp.pointageEntree || '-',
+          depart: emp.pointageSortie || '-',
+          affaireNumber: emp.affaireNumber || '-',
+          client: emp.client || '-',
+          site: emp.site || '-'
         }));
-        setEmployeesPointage(initializedData);
+        setReports(formattedData);
       }
     } catch (error) {
-      console.error("Error fetching employees for supervision:", error);
+      console.error("Error fetching reports:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddEmployee = async (e) => {
-    e.preventDefault();
-    if (newEmployee.name.trim() && newEmployee.matricule.trim()) {
-      try {
-        const response = await fetch(`${API_EMPLOYEE}/employees`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ...newEmployee, 
-            supervisorId: user?.id,
-            status: 'En attente', 
-            pointageEntree: '-', 
-            pointageSortie: '-' 
-          }),
-        });
-        if (response.ok) {
-          fetchEmployeesToSupervise();
-          setNewEmployee({ name: '', matricule: '', role: 'employé' });
-        }
-      } catch (error) {
-        console.error("Error adding employee:", error);
-      }
-    }
-  };
-
-  const handleDeleteEmployee = async (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet employé ?")) {
-      try {
-        const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          fetchEmployeesToSupervise();
-        }
-      } catch (error) {
-        console.error("Error deleting employee:", error);
-      }
-    }
-  };
-
-  const startEditing = (emp) => {
-    setEditingId(emp.id);
-    setEditEmployee({ name: emp.name, matricule: emp.matricule, role: emp.role || 'employé' });
-  };
-
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditEmployee({ ...editEmployee, [name]: value });
-  };
-
-  const saveEdit = async (id) => {
-    const emp = employeesPointage.find(e => e.id === id);
-    try {
-      const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...emp, ...editEmployee }),
-      });
-      if (response.ok) {
-        fetchEmployeesToSupervise();
-        setEditingId(null);
-      }
-    } catch (error) {
-      console.error("Error updating employee:", error);
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-  };
-
   useEffect(() => {
-    fetchEmployeesToSupervise();
+    fetchReports();
   }, [user?.id]);
 
-  const handlePointage = () => {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString();
-    const dateString = now.toLocaleDateString();
-    
-    const newRecord = { date: dateString, time: timeString, action: status === 'En attente' ? 'Entrée' : 'Sortie' };
-    setPointage([...pointage, newRecord]);
-    setStatus(status === 'En attente' ? 'Pointé' : 'En attente');
-  };
-
-  const markStatus = async (id, newStatus) => {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    
-    // Find current employee data
-    const emp = employeesPointage.find(e => e.id === id);
-    if (!emp) return;
-
-    // Optimistic Update
-    let updatedEntree = emp.pointageEntree;
-    let updatedSortie = emp.pointageSortie;
-
-    if (newStatus === 'Présent') {
-      updatedEntree = timeString;
-      updatedSortie = '-';
-    } else if (newStatus === 'Sortie') {
-      updatedSortie = timeString;
-    } else if (newStatus === 'Absent') {
-      updatedEntree = '-';
-      updatedSortie = '-';
-    }
-
-    setEmployeesPointage(prev => prev.map(e => 
-      e.id === id ? { ...e, status: newStatus, pointageEntree: updatedEntree, pointageSortie: updatedSortie } : e
-    ));
-
-    try {
-      const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...emp,
-          status: newStatus, 
-          pointageEntree: updatedEntree,
-          pointageSortie: updatedSortie
-        }),
-      });
-      
-      if (!response.ok) {
-        console.error("Failed to update employee status");
-        // Rollback on error
-        fetchEmployeesToSupervise();
-      }
-    } catch (error) {
-      console.error("Error updating status:", error);
-      fetchEmployeesToSupervise();
-    }
-  };
-
   const handleExportEmployees = () => {
-    const dataToExport = supervisedEmployees.map(({ name, matricule }) => ({ 'Nom': name, 'Matricule': matricule }));
+    const dataToExport = reports.map(({ name, affaireNumber, client, site }) => ({ 
+      'Nom': name,
+      'Affaire N°': affaireNumber,
+      'Client': client,
+      'Site': site
+    }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Employés");
@@ -204,398 +77,260 @@ const Superviseur = ({ user }) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
-      // Convert to array of arrays for a deep search of headers
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      // Convert to array of arrays to find the header row accurately
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       
       let headerRowIndex = -1;
-      // Deep scan the first 100 rows for anything that looks like a header
-      for (let i = 0; i < Math.min(rows.length, 100); i++) {
+      for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || !Array.isArray(row)) continue;
-        
-        const isHeaderRow = row.some(cell => {
-          const s = String(cell || '').toLowerCase().trim();
-          return s.includes('nom') || s.includes('matricule') || s.includes('employé');
-        });
-
-        if (isHeaderRow) {
-          headerRowIndex = i;
-          break;
+        if (row && Array.isArray(row)) {
+          // Check if any cell in this row looks like a "Name" header
+          const hasNameHeader = row.some(cell => {
+            const s = String(cell || '').toLowerCase().trim();
+            return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
+          });
+          
+          if (hasNameHeader) {
+            headerRowIndex = i;
+            break;
+          }
         }
       }
 
       if (headerRowIndex === -1) {
-        alert("Erreur: Impossible de localiser la ligne d'en-tête. Assurez-vous que votre fichier contient une colonne 'Nom complet' ou 'Matricule'.");
+        alert("Impossible de trouver la colonne 'Nom complet' ou 'Nom' dans votre fichier Excel. Vérifiez l'en-tête de votre fichier.");
         return;
       }
 
-      // Read data starting exactly from the detected header row
+      // Read data from the detected header row
       const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
       
-      let importCount = 0;
       for (const row of rawData) {
-        // Find the best matching keys for Name and Matricule in this row
+        // Dynamically find the right keys in case of small spelling/space differences
         const keys = Object.keys(row);
         const nameKey = keys.find(k => {
           const s = k.toLowerCase().trim();
           return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
         });
-        const matriculeKey = keys.find(k => k.toLowerCase().trim().includes('matricule'));
+        const affaireKey = keys.find(k => k.toLowerCase().trim().includes('affaire'));
+        const clientKey = keys.find(k => k.toLowerCase().trim().includes('client'));
+        const siteKey = keys.find(k => k.toLowerCase().trim().includes('site'));
 
         const name = nameKey ? row[nameKey] : null;
-        const matricule = matriculeKey ? row[matriculeKey] : null;
+        const affaireNumber = affaireKey ? row[affaireKey] : '-';
+        const client = clientKey ? row[clientKey] : '-';
+        const site = siteKey ? row[siteKey] : '-';
 
-        // Skip rows that are empty, or are just the header text repeated, or are summary rows (like totals)
-        if (!name || 
-            String(name).toLowerCase().trim() === 'nom complet' || 
-            String(name).toLowerCase().trim() === 'nom' ||
-            String(name).toLowerCase().trim().includes('total')) continue;
+        // Skip header duplicates or empty names
+        if (!name || String(name).toLowerCase().trim().includes('nom complet')) continue;
 
         try {
-          const response = await fetch(`${API_EMPLOYEE}/employees`, {
+          await fetch(`${API_EMPLOYEE}/employees`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: String(name).trim(),
-              matricule: matricule ? String(matricule).trim() : '',
               supervisorId: user?.id,
-              role: 'employé',
               status: 'En attente',
               pointageEntree: '-',
-              pointageSortie: '-'
+              pointageSortie: '-',
+              affaireNumber: String(affaireNumber).trim(),
+              client: String(client).trim(),
+              site: String(site).trim()
             }),
           });
-          if (response.ok) importCount++;
         } catch (error) {
           console.error("Error importing employee:", error);
         }
       }
-      
-      // if (importCount > 0) {
-      //   addNotification(`${importCount} employé(s) importé(s) avec succès`, 'success');
-      // }
-      fetchEmployeesToSupervise();
+      fetchReports();
     };
     reader.readAsBinaryString(file);
   };
 
-  const handleExportFinalExcel = async () => {
-  if (hasNotifiedRef.current) return; // prevent double-clicks
-  hasNotifiedRef.current = true; // lock
+  const handleExportReports = async () => {
+    setIsExporting(true);
+    try {
+      const url = user?.id 
+        ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
+        : `${API_EMPLOYEE}/employees`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error('Failed to fetch latest employee data');
+        setIsExporting(false);
+        return;
+      }
 
-  setIsExporting(true);
+      const latestData = await response.json();
+      const formattedData = latestData.map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        status: emp.status || 'En attente',
+        arrivee: emp.pointageEntree || '-',
+        depart: emp.pointageSortie || '-',
+        affaireNumber: emp.affaireNumber || '-',
+        client: emp.client || '-',
+        site: emp.site || '-'
+      }));
 
-  try {
-    const url = user?.id 
-      ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
-      : `${API_EMPLOYEE}/employees`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error('Failed to fetch latest employee data');
-      return;
+      const dataToExport = formattedData.map(report => ({
+        'Superviseur': user?.name || 'Non spécifié',
+        'Nom complet': report.name,
+        'Affaire N°': report.affaireNumber,
+        'Client': report.client,
+        'Site': report.site,
+        'Heure d\'Entrée': report.arrivee,
+        'Heure de Sortie': report.depart,
+        'Statut': report.status
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rapport Journalier");
+      XLSX.writeFile(workbook, "Rapport_Journalier.xlsx");
+
+      addNotification(
+        `${user?.name || 'Un superviseur'} a exporté le rapport journalier (${dataToExport.length} employé(s))`,
+        'success',
+        dataToExport
+      );
+    } catch (error) {
+      console.error("Error exporting reports:", error);
+    } finally {
+      setIsExporting(false);
     }
+  };
 
-    const rawData = await response.json();
-    const latestEmployees = rawData
-      .map(({ password, ...rest }) => rest)
-      .filter(emp => emp.role === 'employé' || !emp.role);
+  const stats = {
+    total: reports.length,
+    present: reports.filter(r => r.status === 'Présent').length,
+    absent: reports.filter(r => r.status === 'Absent').length
+  };
 
-    if (!latestEmployees.length) {
-      alert("Aucun employé à exporter !");
-      return;
-    }
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = reports.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(reports.length / itemsPerPage);
 
-    const title = `${supervisorName || 'Non spécifié'} (${supervisorsiege || 'Non spécifié'}) a exporté la liste de pointage final (${latestEmployees.length} employé(s))`;
-
-    const headers = ['Nom complet', 'Matricule', "Pointage d'entrée", 'Pointage de sortie', 'Statut'];
-    const rows = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => [
-      name,
-      matricule,
-      pointageEntree || '-',
-      pointageSortie || '-',
-      status || 'En attente'
-    ]);
-
-    const aoa = [
-      [title],
-      [],
-      headers,
-      ...rows
-    ];
-
-    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
-    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Pointage Final");
-    XLSX.writeFile(workbook, "Pointage_Final_Employees.xlsx");
-
-    const dataToExport = latestEmployees.map(({ name, matricule, pointageEntree, pointageSortie, status }) => ({
-  
-      'Nom complet': name,
-      'Matricule': matricule,
-      'Pointage d\'entrée': pointageEntree || '-',
-      'Pointage de sortie': pointageSortie || '-',
-      'Statut': status || 'En attente'
-    }));
-
-  addNotification(
-  `Superviseur : ${supervisorName || 'Un superviseur'} 
-de siège : ${supervisorsiege || 'Non spécifié'} 
-a exporté la liste de pointage final (${latestEmployees.length} employé(s))`,
-  'success',
-  dataToExport
-);
-
-  } catch (error) {
-    console.error("Error exporting pointage:", error);
-  } finally {
-    setIsExporting(false);
-    hasNotifiedRef.current = false; // unlock
-  }
-};
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div className="superviseur-container">
-      <h1>Espace Superviseur</h1>
-      
-      {/* <section className="own-pointage">
-        <h2>Mon Pointage Personnel</h2>
-        <div className="status-section">
-          <h3>Statut Actuel: <span className={status === 'Pointé' ? 'status-active' : 'status-inactive'}>{status}</span></h3>
-          <button onClick={handlePointage} className="pointage-btn">
-            {status === 'En attente' ? 'Marquer l\'entrée' : 'Marquer la sortie'}
-          </button>
-        </div>
+      <div className="view-header">
+        <h1>Espace Superviseur</h1>
+      </div>
 
-        <div className="history-section">
-          <h3>Mon Historique</h3>
-          {pointage.length === 0 ? (
-            <p>Aucun pointage enregistré pour le moment.</p>
-          ) : (
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Heure</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pointage.map((record, index) => (
-                  <tr key={index}>
-                    <td>{record.date}</td>
-                    <td>{record.time}</td>
-                    <td>{record.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section> */}
-
-      {/* <hr className="divider" /> */}
-
-      <section className="employees-management">
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2>Gestion des Employés</h2>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="card">
+        <div className="section-title">
+          <h2>Rapport Journalier de Pointage</h2>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={fetchReports} className="refresh-btn">
+              🔄 Actualiser
+            </button>
             <input 
-              type="text" 
-              placeholder="Siège" 
-              value={supervisorsiege}
-              onChange={(e) => setSupervisorsiege(e.target.value)}
-              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
+              type="file" 
+              accept=".xlsx, .xls" 
+              onChange={handleImportEmployees}
+              id="import-employees-superviseur"
+              style={{ display: 'none' }}
             />
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input 
-                type="file" 
-                accept=".xlsx, .xls" 
-                onChange={handleImportEmployees}
-                id="import-employees"
-                style={{ display: 'none' }}
-              />
-              <label htmlFor="import-employees" className="export-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', fontWeight: 'bold', margin: 0 }}>
-                📤 Importer
-              </label>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button 
-                onClick={() => unmarkedCount > 0 ? setShowWarning(true) : handleExportFinalExcel()} 
-                className="export-btn" 
-                disabled={supervisedEmployees.length === 0 || isExporting}
-                style={{ backgroundColor: unmarkedCount > 0 ? '#f59e0b' : '#217346', color: 'white', padding: '0.6rem 1.2rem', border: 'none', borderRadius: '4px', cursor: isExporting ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: supervisedEmployees.length === 0 || isExporting ? 0.5 : 1 }}
-              >
-                {isExporting ? '⏳ Export en cours...' : 'Exporter Excel Final'}
-              </button>
-              {unmarkedCount > 0 && (
-                <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: '500' }}>
-                  ⚠️ {unmarkedCount} employé(s) non marqué(s)
-                </span>
-              )}
-            </div>
+            <label htmlFor="import-employees-superviseur" className="refresh-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', margin: 0, padding: '0.5rem 0.75rem' }}>
+              📤 Importer
+            </label>
+            <button 
+              onClick={handleExportEmployees}
+              className="refresh-btn"
+              disabled={reports.length === 0}
+              style={{ background: '#f1f5f9', color: '#475569', opacity: reports.length === 0 ? 0.5 : 1, cursor: reports.length === 0 ? 'not-allowed' : 'pointer' }}
+            >
+              📥 Exporter
+            </button>
+            <button 
+              onClick={handleExportReports} 
+              className="refresh-btn"
+              disabled={reports.length === 0 || isExporting}
+              style={{ background: '#10b981', color: 'white', opacity: reports.length === 0 || isExporting ? 0.5 : 1, cursor: isExporting ? 'not-allowed' : 'pointer' }}
+            >
+              {isExporting ? '⏳ Export...' : '📊 Rapport'}
+            </button>
           </div>
         </div>
-
-        <div className="add-employee-form" style={{ marginBottom: '2rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>
-          <h3>Ajouter un nouvel employé</h3>
-          <form onSubmit={handleAddEmployee} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="Nom de l'employé"
-              value={newEmployee.name}
-              onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-              required
-              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-            <input
-              type="text"
-              placeholder="Matricule"
-              value={newEmployee.matricule}
-              onChange={(e) => setNewEmployee({ ...newEmployee, matricule: e.target.value })}
-              required
-              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
-            <button type="submit" className="pointage-btn" style={{ padding: '0.5rem 1rem' }}>Ajouter</button>
-          </form>
-        </div>
-
+        
         {loading ? (
-          <p>Chargement des employés...</p>
-        ) : supervisedEmployees.length === 0 ? (
-          <p>Aucun employé à superviser.</p>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Chargement des rapports...</div>
         ) : (
-          <table className="history-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Matricule</th>
-                <th>Pointage d'entrée</th>
-                <th>Pointage de sortie</th>
-                <th>Statut</th>
-                <th>Actions de Pointage</th>
-                <th>Actions de Gestion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {supervisedEmployees.map((emp) => (
-                <tr key={emp.id}>
-                  <td>
-                    {editingId === emp.id ? (
-                      <input
-                        type="text"
-                        name="name"
-                        value={editEmployee.name}
-                        onChange={handleEditChange}
-                        style={{ width: '100%', padding: '4px' }}
-                      />
-                    ) : (
-                      emp.name
-                    )}
-                  </td>
-                  <td>
-                    {editingId === emp.id ? (
-                      <input
-                        type="text"
-                        name="matricule"
-                        value={editEmployee.matricule}
-                        onChange={handleEditChange}
-                        style={{ width: '100%', padding: '4px' }}
-                      />
-                    ) : (
-                      emp.matricule
-                    )}
-                  </td>
-                  <td>{emp.pointageEntree}</td>
-                  <td>{emp.pointageSortie}</td>
-                  <td>
-                    <span className={`status-badge ${
-                      emp.status === 'Présent' ? 'present' : 
-                      emp.status === 'Absent' ? 'absent' : 
-                      emp.status === 'Sortie' ? 'absent' : 'pending'
-                    }`}>
-                      {emp.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-btns">
-                      <button 
-                        onClick={() => markStatus(emp.id, 'Présent')} 
-                        className="status-btn present-btn"
-                        disabled={emp.status === 'Présent' || editingId === emp.id}
-                      >
-                        Entrée
-                      </button>
-                      <button 
-                        onClick={() => markStatus(emp.id, 'Sortie')} 
-                        className="status-btn"
-                        style={{ backgroundColor: '#FF9800', color: 'white' }}
-                        disabled={emp.status !== 'Présent' || editingId === emp.id}
-                      >
-                        Sortie
-                      </button>
-                      <button 
-                        onClick={() => markStatus(emp.id, 'Absent')} 
-                        className="status-btn absent-btn"
-                        disabled={emp.status === 'Absent' || editingId === emp.id}
-                      >
-                        Absent
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="action-btns">
-                      {editingId === emp.id ? (
-                        <>
-                          <button onClick={() => saveEdit(emp.id)} className="status-btn present-btn" style={{ backgroundColor: '#2196F3' }}>Enregistrer</button>
-                          <button onClick={cancelEdit} className="status-btn" style={{ backgroundColor: '#757575', color: 'white' }}>Annuler</button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => startEditing(emp)} className="status-btn" style={{ backgroundColor: '#FF9800', color: 'white' }}>Modifier</button>
-                          <button onClick={() => handleDeleteEmployee(emp.id)} className="status-btn" style={{ backgroundColor: '#f44336', color: 'white' }}>Supprimer</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      {showWarning && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '8px', padding: '2rem', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: '#1f2937' }}>⚠️ Attention</h3>
-            <p style={{ margin: '0 0 1rem 0', color: '#6b7280' }}>
-              {unmarkedCount} employé(s) n'ont pas encore été marqué(s) avec un statut (Entrée, Sortie ou Absent).
-            </p>
-            <p style={{ margin: '0 0 1.5rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
-              Voulez-vous continuer l'exportation malgré tout ?
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button 
-                onClick={() => setShowWarning(false)}
-                style={{ padding: '0.5rem 1rem', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#f9fafb', cursor: 'pointer', fontWeight: '500' }}
-              >
-                Annuler
-              </button>
-              <button 
-                onClick={() => {
-                  setShowWarning(false);
-                  handleExportFinalExcel();
-                }}
-                style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', background: '#f59e0b', color: 'white', cursor: 'pointer', fontWeight: '500' }}
-              >
-                Exporter quand même
-              </button>
+          <>
+            <div className="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nom de l'Employé</th>
+                    <th>Affaire N°</th>
+                    <th>Client</th>
+                    <th>Site</th>
+                    <th>Heure d'Entrée</th>
+                    <th>Heure de Sortie</th>
+                    <th style={{ textAlign: 'right' }}>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
+                    </tr>
+                  ) : (
+                    currentItems.map((report) => (
+                      <tr key={report.id}>
+                        <td style={{ fontWeight: 600 }}>{report.name}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.affaireNumber}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.client}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.site}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.arrivee}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.depart}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={`badge ${report.status === 'Présent' ? 'badge-success' : 'badge-warning'}`}>
+                            {report.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </div>
-      )}
+            {reports.length > itemsPerPage && (
+              <div className="pagination">
+                <button 
+                  onClick={() => paginate(currentPage - 1)} 
+                  disabled={currentPage === 1}
+                  className="pagination-btn"
+                >
+                  Précédent
+                </button>
+                <div className="pagination-pages">
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button 
+                      key={i + 1} 
+                      onClick={() => paginate(i + 1)}
+                      className={`pagination-number ${currentPage === i + 1 ? 'active' : ''}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => paginate(currentPage + 1)} 
+                  disabled={currentPage === totalPages}
+                  className="pagination-btn"
+                >
+                  Suivant
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

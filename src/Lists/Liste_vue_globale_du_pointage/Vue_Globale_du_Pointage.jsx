@@ -79,6 +79,9 @@ const Vue_Globale_du_Pointage = () => {
             recoveryDays: emp.recoveryDays || 0,
             sickLeaveDays: emp.sickLeaveDays || 0,
             siteWorkshop: emp.siteWorkshop || '-',
+            affaireNumber: emp.affaireNumber || '-',
+            client: emp.client || '-',
+            site: emp.site || '-',
           }));
         setAllPointage(enriched);
       }
@@ -377,8 +380,11 @@ const Vue_Globale_du_Pointage = () => {
                 <thead>
                   <tr>
                     <th>Superviseur</th>
-                    <th>Employé</th>
+                    <th>Nom complet</th>
                     <th>Matricule</th>
+                    <th>Affaire N°</th>
+                    <th>Client</th>
+                    <th>Site</th>
                     <th>Chantier/Atelier</th>
                     <th>Pointage d'entrée</th>
                     <th>Pointage de sortie</th>
@@ -401,7 +407,7 @@ const Vue_Globale_du_Pointage = () => {
                 <tbody>
                   {paginatedPointage.length === 0 ? (
                     <tr>
-                      <td colSpan={20} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={23} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                         {allPointage.length === 0
                           ? 'Aucune donnée de pointage disponible.'
                           : 'Aucun enregistrement ne correspond aux filtres sélectionnés.'}
@@ -413,6 +419,9 @@ const Vue_Globale_du_Pointage = () => {
                         <td><span className="supervisor-name-cell">{row.supervisorName}</span></td>
                         <td style={{ fontWeight: 600, transition: 'color 0.2s' }}>{row.name}</td>
                         <td><code className="matricule-code">{row.matricule}</code></td>
+                        <td>{row.affaireNumber}</td>
+                        <td>{row.client}</td>
+                        <td>{row.site}</td>
                         <td>{row.siteWorkshop}</td>
                         <td>{row.pointageEntree}</td>
                         <td>{row.pointageSortie}</td>
