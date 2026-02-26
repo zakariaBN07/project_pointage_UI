@@ -4,136 +4,128 @@
 }
 
 .sidebar {
-  width: 260px;
+  width: 280px;
   background-color: var(--bg-sidebar);
-  color: var(--sidebar-text);
+  color: var(--text-on-sidebar);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
   position: fixed;
   height: 100vh;
-  border-right: 1px solid var(--border-color);
   z-index: 100;
+  transition: all 0.3s ease;
 }
 
 .sidebar-header {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
+  padding: 2rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--text-main);
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border-color);
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-nav {
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex: 1;
 }
 
 .nav-item {
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  color: var(--sidebar-text);
+  border-radius: var(--radius-md);
+  color: var(--text-on-sidebar);
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   transition: all 0.2s;
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
 .nav-item:hover {
-  background-color: var(--sidebar-hover);
-  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
 }
 
 .nav-item.active {
-  background-color: var(--primary-color);
-  color: #f0e8e8;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(86, 26, 28, 0.4);
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
 
 .main-content {
   flex: 1;
-  margin-left: 260px;
+  margin-left: 280px;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-main);
 }
 
 .topbar {
-  height: 70px;
+  height: 64px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 2.5rem;
+  justify-content: space-between;
+  padding: 0 2rem;
   position: sticky;
   top: 0;
-  z-index: 10;
-  box-shadow: var(--shadow);
+  z-index: 50;
+  box-shadow: var(--shadow-sm);
 }
 
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .user-info {
+  display: flex;
+  flex-direction: column;
   text-align: right;
 }
 
 .user-name {
-  display: block;
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--text-main);
 }
 
 .user-role {
-  display: block;
   font-size: 0.75rem;
   color: var(--text-muted);
   text-transform: capitalize;
 }
 
+.logout-btn {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
 .content-body {
   padding: 2rem;
-  max-width: 1088px;
+  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
 }
 
-.logout-btn {
-  background: rgba(86, 26, 28, 0.2);
-  color: #f87171;
-  border: 1px solid rgba(86, 26, 28, 0.4);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.logout-btn:hover {
-  background: rgba(86, 26, 28, 0.4);
-  border-color: var(--primary-color);
-}
-
 .sidebar-notifications {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: center;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+

@@ -10,7 +10,7 @@ import Notification from './components/Notification/Notification'
 import Parametre from './components/Parametre/Parametre'
 import Liste_des_Gestionnaires from './Lists/Liste_des_Gestionnaires/Liste_des_Gestionnaires'
 import Vue_Globale_du_Pointage from './Lists/Liste_vue_globale_du_pointage/Vue_Globale_du_Pointage'
-import { MdHome } from "react-icons/md";
+import { MdHome, MdPeople, MdEventNote, MdSettings } from "react-icons/md";
 
 function App() {
   const [user, setUser] = useState(null)
@@ -65,8 +65,8 @@ function App() {
             onClick={() => setCurrentPage('dashboard')}
             style={{ cursor: 'pointer' }}
           >
-            <span></span>
-            <MdHome size={24} color="#4f46e5" /> Home
+            <MdHome size={20} />
+            <span>Tableau de bord</span>
           </div>
           
           {user.role === 'admin' && (
@@ -76,23 +76,23 @@ function App() {
                 onClick={() => setCurrentPage('lists')}
                 style={{ cursor: 'pointer' }}
               >
-                <span>👥</span>
-                <span>Lists</span>
+                <MdPeople size={20} />
+                <span>Gestionnaires</span>
               </div>
               <div 
                 className={`nav-item ${currentPage === 'pointage' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('pointage')}
                 style={{ cursor: 'pointer' }}
               >
-                <span>📅</span>
-                <span>Pointage</span>
+                <MdEventNote size={20} />
+                <span>Pointages</span>
               </div>
               <div 
                 className={`nav-item ${currentPage === 'parametre' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('parametre')}
                 style={{ cursor: 'pointer' }}
               >
-                <span>⚙️</span>
+                <MdSettings size={20} />
                 <span>Paramètres</span>
               </div>
             </>
