@@ -65,7 +65,7 @@ export const NotificationProvider = ({ children }) => {
   }, [notifications]);
 
   // Add a new notification
-  const addNotification = useCallback((message, type = 'info', data = null) => {
+  const addNotification = useCallback((message, type = 'info', data = null, recipientRole = 'admin', recipientId = null) => {
     const id = Date.now();
     const notification = {
       id,
@@ -73,6 +73,8 @@ export const NotificationProvider = ({ children }) => {
       type,
       timestamp: new Date(),
       data,
+      recipientRole,
+      recipientId,
     };
     setNotifications(prev => [notification, ...prev]);
     return id;

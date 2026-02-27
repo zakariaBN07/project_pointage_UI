@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
 import { NotificationContext } from '../../../context/NotificationContext';
-import { 
-  FaSync, 
-  FaFileExport, 
-  FaFileImport, 
+import {
+  FaSync,
+  FaFileExport,
+  FaFileImport,
   FaClipboardList,
   FaUsers,
   FaUserCheck,
   FaUserTimes,
-  FaArrowRight
+  FaArrowRight,
+  FaChevronLeft,
+  FaChevronRight,
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight,
+  FaTrash,
+  FaEdit,
+  FaSave,
+  FaTimes,
+  FaCalendarAlt,
+  FaHardHat
 } from 'react-icons/fa';
 import './Superviseur.css';
+
+const formatHours = (h) => (h == null || parseFloat(h) === 0) ? '0h' : `${Math.round(h)}h`;
+const formatDays = (d) => (d == null || parseFloat(d) === 0) ? 0 : Math.max(1, Math.round(d));
 
 const Superviseur = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
@@ -21,25 +34,21 @@ const Superviseur = ({ user }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [activeActivityModal, setActiveActivityModal] = useState(null);
 
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const url = user?.id 
+      const url = user?.id
         ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const formattedData = data.map(emp => ({
-          id: emp.id,
-          name: emp.name,
-          status: emp.status || 'En attente',
+          ...emp,
           arrivee: emp.pointageEntree || '-',
           depart: emp.pointageSortie || '-',
-          affaireNumber: emp.affaireNumber || '-',
-          client: emp.client || '-',
-          site: emp.site || '-'
         }));
         setReports(formattedData);
       }
@@ -55,11 +64,26 @@ const Superviseur = ({ user }) => {
   }, [user?.id]);
 
   const handleExportEmployees = () => {
-    const dataToExport = reports.map(({ name, affaireNumber, client, site }) => ({ 
-      'Nom': name,
-      'Affaire N°': affaireNumber,
-      'Client': client,
-      'Site': site
+    const dataToExport = reports.map((emp) => ({
+      'Nom': emp.name,
+      'Matricule': emp.matricule,
+      'Affaire N°': emp.affaireNumero,
+      'Client': emp.client,
+      'Site': emp.site,
+      'Tot.Hrs trav.': formatHours(emp.totHrsTravaillees),
+      'Jrs trav.': formatDays(emp.nbrJrsTravaillees),
+      'Jrs Absence': formatDays(emp.nbrJrsAbsence),
+      'Hrs Dimanche': formatHours(emp.totHrsDimanche),
+      'Jrs Fériés': formatDays(emp.nbrJrsFeries),
+      'Jrs Fériés Trav.': formatDays(emp.nbrJrsFeriesTravailes),
+      'Jrs Congés': formatDays(emp.nbrJrsConges),
+      'Jrs Dépl. Maroc': formatDays(emp.nbrJrsDeplacementsMaroc),
+      'Jrs Paniers': formatDays(emp.nbrJrsPaniers),
+      'Jrs Détente': formatDays(emp.nbrJrsDetente),
+      'Jrs Dépl. Expat': formatDays(emp.nbrJrsDeplacementsExpatrie),
+      'Jrs Récup': formatDays(emp.nbrJrsRecuperation),
+      'Jrs Maladie': formatDays(emp.nbrJrsMaladie),
+      'Chantier/Atelier': emp.chantierAtelier || '-'
     }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
@@ -76,10 +100,10 @@ const Superviseur = ({ user }) => {
       const workbook = XLSX.read(bstr, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      
+
       // Convert to array of arrays to find the header row accurately
       const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-      
+
       let headerRowIndex = -1;
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -89,7 +113,7 @@ const Superviseur = ({ user }) => {
             const s = String(cell || '').toLowerCase().trim();
             return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
           });
-          
+
           if (hasNameHeader) {
             headerRowIndex = i;
             break;
@@ -104,7 +128,7 @@ const Superviseur = ({ user }) => {
 
       // Read data from the detected header row
       const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
-      
+
       for (const row of rawData) {
         // Dynamically find the right keys in case of small spelling/space differences
         const keys = Object.keys(row);
@@ -112,14 +136,23 @@ const Superviseur = ({ user }) => {
           const s = k.toLowerCase().trim();
           return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
         });
+        const matriculeKey = keys.find(k => {
+          const s = k.toLowerCase().trim();
+          return s.includes('matricule') || s === 'matricule' || s.includes('matricule de l\'employé');
+        });
         const affaireKey = keys.find(k => k.toLowerCase().trim().includes('affaire'));
         const clientKey = keys.find(k => k.toLowerCase().trim().includes('client'));
         const siteKey = keys.find(k => k.toLowerCase().trim().includes('site'));
+        const hoursKey = keys.find(k => k.toLowerCase().trim().includes('tot.hrs') || k.toLowerCase().trim().includes('heures'));
+        const daysKey = keys.find(k => k.toLowerCase().trim().includes('jrs trav') || k.toLowerCase().trim().includes('jours'));
 
         const name = nameKey ? row[nameKey] : null;
-        const affaireNumber = affaireKey ? row[affaireKey] : '-';
+        const matricule = matriculeKey ? row[matriculeKey] : '-';
+        const affaireNumero = affaireKey ? row[affaireKey] : '-';
         const client = clientKey ? row[clientKey] : '-';
         const site = siteKey ? row[siteKey] : '-';
+        const totalHoursWorked = hoursKey ? row[hoursKey] : 0;
+        const daysWorked = daysKey ? row[daysKey] : 0;
 
         // Skip header duplicates or empty names
         if (!name || String(name).toLowerCase().trim().includes('nom complet')) continue;
@@ -130,13 +163,16 @@ const Superviseur = ({ user }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: String(name).trim(),
+              matricule: String(matricule).trim(),
               supervisorId: user?.id,
               status: 'En attente',
               pointageEntree: '-',
               pointageSortie: '-',
-              affaireNumber: String(affaireNumber).trim(),
+              affaireNumero: String(affaireNumero).trim(),
               client: String(client).trim(),
-              site: String(site).trim()
+              site: String(site).trim(),
+              totalHoursWorked: totalHoursWorked,
+              daysWorked: daysWorked
             }),
           });
         } catch (error) {
@@ -151,7 +187,7 @@ const Superviseur = ({ user }) => {
   const handleExportReports = async () => {
     setIsExporting(true);
     try {
-      const url = user?.id 
+      const url = user?.id
         ? `${API_EMPLOYEE}/employees?supervisorId=${user.id}`
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
@@ -163,25 +199,35 @@ const Superviseur = ({ user }) => {
 
       const latestData = await response.json();
       const formattedData = latestData.map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        status: emp.status || 'En attente',
+        ...emp,
         arrivee: emp.pointageEntree || '-',
         depart: emp.pointageSortie || '-',
-        affaireNumber: emp.affaireNumber || '-',
-        client: emp.client || '-',
-        site: emp.site || '-'
       }));
 
-      const dataToExport = formattedData.map(report => ({
+      const dataToExport = formattedData.map(emp => ({
         'Superviseur': user?.name || 'Non spécifié',
-        'Nom complet': report.name,
-        'Affaire N°': report.affaireNumber,
-        'Client': report.client,
-        'Site': report.site,
-        'Heure d\'Entrée': report.arrivee,
-        'Heure de Sortie': report.depart,
-        'Statut': report.status
+        'Nom complet': emp.name,
+        'Matricule': emp.matricule,
+        'Affaire N°': emp.affaireNumero || '-',
+        'Client': emp.client || '-',
+        'Site': emp.site || '-',
+        'Heure d\'Entrée': emp.arrivee,
+        'Heure de Sortie': emp.depart,
+        'Statut': emp.status,
+        'Hrs travailées': formatHours(emp.totHrsTravaillees),
+        'Jrs travaillés': formatDays(emp.nbrJrsTravaillees),
+        'Jrs Absence': formatDays(emp.nbrJrsAbsence),
+        'Hrs Dimanche': formatHours(emp.totHrsDimanche),
+        'Jrs Fériés': formatDays(emp.nbrJrsFeries),
+        'Jrs Fériés Trav.': formatDays(emp.nbrJrsFeriesTravailes),
+        'Jrs Congés': formatDays(emp.nbrJrsConges),
+        'Jrs Dépl. Maroc': formatDays(emp.nbrJrsDeplacementsMaroc),
+        'Jrs Paniers': formatDays(emp.nbrJrsPaniers),
+        'Jrs Détente': formatDays(emp.nbrJrsDetente),
+        'Jrs Dépl. Expat': formatDays(emp.nbrJrsDeplacementsExpatrie),
+        'Jrs Récup': formatDays(emp.nbrJrsRecuperation),
+        'Jrs Maladie': formatDays(emp.nbrJrsMaladie),
+        'Chantier/Atelier': emp.chantierAtelier || '-'
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -201,6 +247,28 @@ const Superviseur = ({ user }) => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (reports.length === 0) return;
+
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer TOUS les ${reports.length} employés de votre liste ? Cette action est irréversible.`)) {
+      try {
+        setLoading(true);
+        // Delete each employee one by one as the current API supports single deletes
+        await Promise.all(reports.map(emp =>
+          fetch(`${API_EMPLOYEE}/employees/${emp.id}`, { method: 'DELETE' })
+        ));
+
+        // Refresh the list after all deletions are done
+        fetchReports();
+      } catch (error) {
+        console.error("Error deleting all employees:", error);
+        alert("Une erreur est survenue lors de la suppression.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const stats = {
     total: reports.length,
     present: reports.filter(r => r.status === 'Présent').length,
@@ -213,7 +281,30 @@ const Superviseur = ({ user }) => {
   const currentItems = reports.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(reports.length / itemsPerPage);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  const renderPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, start + maxVisible - 1);
+
+      if (end === totalPages) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
+  };
 
   return (
     <div className="superviseur-container">
@@ -226,37 +317,50 @@ const Superviseur = ({ user }) => {
           <h2>Rapport Journalier de Pointage</h2>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button onClick={fetchReports} className="refresh-btn">
-              🔄 Actualiser
+              <FaSync /> Actualiser
             </button>
-            <input 
-              type="file" 
-              accept=".xlsx, .xls" 
+            <button
+              onClick={handleDeleteAll}
+              className="refresh-btn delete-all-btn"
+              disabled={reports.length === 0 || loading}
+              style={{
+                background: '#fee2e2',
+                color: '#dc2626',
+                borderColor: '#fca5a5',
+                opacity: (reports.length === 0 || loading) ? 0.5 : 1
+              }}
+            >
+              <FaTrash /> Vider la liste
+            </button>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
               onChange={handleImportEmployees}
               id="import-employees-superviseur"
               style={{ display: 'none' }}
             />
             <label htmlFor="import-employees-superviseur" className="refresh-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', margin: 0, padding: '0.5rem 0.75rem' }}>
-              📤 Importer
+              <FaFileImport /> Importer Excel
             </label>
-            <button 
+            <button
               onClick={handleExportEmployees}
               className="refresh-btn"
               disabled={reports.length === 0}
               style={{ background: '#f1f5f9', color: '#475569', opacity: reports.length === 0 ? 0.5 : 1, cursor: reports.length === 0 ? 'not-allowed' : 'pointer' }}
             >
-              📥 Exporter
+              <FaFileExport /> Télécharger Excel
             </button>
-            <button 
-              onClick={handleExportReports} 
+            <button
+              onClick={handleExportReports}
               className="refresh-btn"
               disabled={reports.length === 0 || isExporting}
               style={{ background: '#10b981', color: 'white', opacity: reports.length === 0 || isExporting ? 0.5 : 1, cursor: isExporting ? 'not-allowed' : 'pointer' }}
             >
-              {isExporting ? '⏳ Export...' : '📊 Rapport'}
+              <FaClipboardList /> {isExporting ? '⏳ Transmission...' : '📊 Transmettre à l\'Admin'}
             </button>
           </div>
         </div>
-        
+
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>Chargement des rapports...</div>
         ) : (
@@ -266,71 +370,198 @@ const Superviseur = ({ user }) => {
                 <thead>
                   <tr>
                     <th>Nom de l'Employé</th>
+                    <th>Matricule</th>
                     <th>Affaire N°</th>
                     <th>Client</th>
                     <th>Site</th>
                     <th>Heure d'Entrée</th>
                     <th>Heure de Sortie</th>
-                    <th style={{ textAlign: 'right' }}>Statut</th>
+                    <th style={{ textAlign: 'center' }}>Statut</th>
+                    <th style={{ textAlign: 'center' }}>Détails</th>
+                    <th style={{ textAlign: 'center' }}>Tot.Hrs trav.</th>
+                    <th style={{ textAlign: 'center' }}>Jrs trav.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
+                      <td colSpan="10" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
                     </tr>
                   ) : (
                     currentItems.map((report) => (
                       <tr key={report.id}>
                         <td style={{ fontWeight: 600 }}>{report.name}</td>
-                        <td style={{ color: 'var(--text-muted)' }}>{report.affaireNumber}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.matricule}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{report.affaireNumero}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{report.client}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{report.site}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{report.arrivee}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{report.depart}</td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'center' }}>
                           <span className={`badge ${report.status === 'Présent' ? 'badge-success' : 'badge-warning'}`}>
                             {report.status}
                           </span>
                         </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => setActiveActivityModal(report)} className="activity-btn-small" title="Voir l'activité">
+                            <FaClipboardList />
+                          </button>
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: 600, color: '#4f46e5' }}>{formatHours(report.totHrsTravaillees)}</td>
+                        <td style={{ textAlign: 'center', fontWeight: 600, color: '#10b981' }}>{formatDays(report.nbrJrsTravaillees)}</td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
-            {reports.length > itemsPerPage && (
+            {reports.length > 0 && (
               <div className="pagination">
-                <button 
-                  onClick={() => paginate(currentPage - 1)} 
-                  disabled={currentPage === 1}
-                  className="pagination-btn"
-                >
-                  Précédent
-                </button>
-                <div className="pagination-pages">
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button 
-                      key={i + 1} 
-                      onClick={() => paginate(i + 1)}
-                      className={`pagination-number ${currentPage === i + 1 ? 'active' : ''}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                <div className="pagination-info">
+                  Affichage de <strong>{indexOfFirstItem + 1}</strong> à <strong>{Math.min(indexOfLastItem, reports.length)}</strong> sur <strong>{reports.length}</strong> employés
                 </div>
-                <button 
-                  onClick={() => paginate(currentPage + 1)} 
-                  disabled={currentPage === totalPages}
-                  className="pagination-btn"
-                >
-                  Suivant
-                </button>
+
+                <div className="pagination-pills">
+                  <button
+                    onClick={() => paginate(1)}
+                    disabled={currentPage === 1}
+                    className="pagination-pill btn-icon"
+                    title="Première page"
+                  >
+                    <FaAngleDoubleLeft />
+                  </button>
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="pagination-pill btn-icon"
+                    title="Précédent"
+                  >
+                    <FaChevronLeft />
+                  </button>
+
+                  <div className="pagination-numbers">
+                    {renderPageNumbers().map(number => (
+                      <button
+                        key={number}
+                        onClick={() => paginate(number)}
+                        className={`pagination-number ${currentPage === number ? 'active' : ''}`}
+                      >
+                        {number}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="pagination-pill btn-icon"
+                    title="Suivant"
+                  >
+                    <FaChevronRight />
+                  </button>
+                  <button
+                    onClick={() => paginate(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="pagination-pill btn-icon"
+                    title="Dernière page"
+                  >
+                    <FaAngleDoubleRight />
+                  </button>
+                </div>
               </div>
             )}
           </>
         )}
       </div>
+
+      {activeActivityModal && (
+        <div className="activity-modal-overlay">
+          <div className="activity-modal animate-slide-up">
+            <div className="modal-header">
+              <div>
+                <h2><FaClipboardList /> Activité Détaillée</h2>
+                <p>{activeActivityModal.name} - {activeActivityModal.matricule}</p>
+              </div>
+              <button className="close-btn" onClick={() => setActiveActivityModal(null)}><FaTimes /></button>
+            </div>
+
+            <div className="modal-content-grid">
+              <div className="activity-section">
+                <h4><FaCalendarAlt /> Absences & Congés</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Jrs Absence</label>
+                    <input type="number" value={activeActivityModal.nbrJrsAbsence || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Congés</label>
+                    <input type="number" value={activeActivityModal.nbrJrsConges || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Maladie</label>
+                    <input type="number" value={activeActivityModal.nbrJrsMaladie || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Récup.</label>
+                    <input type="number" value={activeActivityModal.nbrJrsRecuperation || 0} readOnly disabled />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4><FaSync /> Heures & Fériés</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Hrs Dimanche</label>
+                    <input type="number" value={activeActivityModal.totHrsDimanche || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Fériés</label>
+                    <input type="number" value={activeActivityModal.nbrJrsFeries || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Fériés Trav.</label>
+                    <input type="number" value={activeActivityModal.nbrJrsFeriesTravailes || 0} readOnly disabled />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4><FaHardHat /> Logistique & Terrain</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Jrs Dépl. Maroc</label>
+                    <input type="number" value={activeActivityModal.nbrJrsDeplacementsMaroc || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Dépl. Expat</label>
+                    <input type="number" value={activeActivityModal.nbrJrsDeplacementsExpatrie || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Paniers</label>
+                    <input type="number" value={activeActivityModal.nbrJrsPaniers || 0} readOnly disabled />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Détente</label>
+                    <input type="number" value={activeActivityModal.nbrJrsDetente || 0} readOnly disabled />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section-full">
+                <div className="text-field">
+                  <label>Chantier / Atelier</label>
+                  <input type="text" value={activeActivityModal.chantierAtelier || '-'} readOnly disabled />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="save-btn-alt" onClick={() => setActiveActivityModal(null)}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -58,7 +58,8 @@ const Vue_Globale_du_Pointage = () => {
           .filter(emp => emp.role === 'employé' || !emp.role)
           .map(emp => ({
             id: emp.id,
-            supervisorName: supervisorMap[emp.supervisorId] || 'Inconnu',
+            // Check both supervisorId and responsableId to find the manager's name
+            supervisorName: supervisorMap[emp.supervisorId] || supervisorMap[emp.responsableId] || 'Inconnu',
             name: emp.name,
             matricule: emp.matricule,
             pointageEntree: emp.pointageEntree || '-',
@@ -79,7 +80,7 @@ const Vue_Globale_du_Pointage = () => {
             recoveryDays: emp.recoveryDays || 0,
             sickLeaveDays: emp.sickLeaveDays || 0,
             siteWorkshop: emp.siteWorkshop || '-',
-            affaireNumber: emp.affaireNumber || '-',
+            affaireNumero: emp.affaireNumero || '-',
             client: emp.client || '-',
             site: emp.site || '-',
           }));
@@ -97,8 +98,11 @@ const Vue_Globale_du_Pointage = () => {
   }, []);
 
   const allSupervisors = useMemo(
-    () => [...new Set(allPointage.map(r => r.supervisorName).filter(Boolean))].sort(),
-    [allPointage]
+    () => gestionnaires
+      .filter(g => g.role === 'superviseur')
+      .map(g => g.name)
+      .sort(),
+    [gestionnaires]
   );
 
   const allStatuses = useMemo(
@@ -375,33 +379,34 @@ const Vue_Globale_du_Pointage = () => {
           </div>
         ) : (
           <>
+            <p className="table-scroll-hint">⇐ Faites défiler horizontalement pour voir toutes les colonnes ⇒</p>
             <div className="table-responsive">
               <table className="gestionnaires-table pointage-table">
                 <thead>
                   <tr>
-                    <th>Superviseur</th>
-                    <th>Nom complet</th>
-                    <th>Matricule</th>
-                    <th>Affaire N°</th>
-                    <th>Client</th>
-                    <th>Site</th>
-                    <th>Chantier/Atelier</th>
-                    <th>Pointage d'entrée</th>
-                    <th>Pointage de sortie</th>
-                    <th>Statut</th>
-                    <th>Tot.Hrs travaillées</th>
-                    <th>Nbr.jrs travaillés</th>
-                    <th>Nbr.Jrs Absence</th>
-                    <th>Tot.Hrs Dimanche</th>
-                    <th>Nbr.Jrs fériés</th>
-                    <th>Nbr.Jrs Fériés Travaillés</th>
-                    <th>Nbr.Jrs Congés</th>
-                    <th>Nbr.Jrs déplacements Maroc</th>
-                    <th>Nbr.Jrs paniers</th>
-                    <th>Nbr.Jrs détente</th>
-                    <th>Nbr.Jrs déplacements expatrié</th>
-                    <th>Nbr.Jrs récupération</th>
-                    <th>Nbr.Jrs maladie</th>
+                    <th style={{ width: '130px' }}>Superviseur</th>
+                    <th style={{ width: '160px' }}>Nom complet</th>
+                    <th style={{ width: '100px' }}>Matricule</th>
+                    <th style={{ width: '90px' }}>Affaire N°</th>
+                    <th style={{ width: '100px' }}>Client</th>
+                    <th style={{ width: '90px' }}>Site</th>
+                    <th style={{ width: '110px' }}>Chantier/Atelier</th>
+                    <th style={{ width: '100px' }}>Pointage d'entrée</th>
+                    <th style={{ width: '100px' }}>Pointage de sortie</th>
+                    <th style={{ width: '90px' }}>Statut</th>
+                    <th style={{ width: '80px' }}>Tot.Hrs trav.</th>
+                    <th style={{ width: '75px' }}>Jrs trav.</th>
+                    <th style={{ width: '75px' }}>Jrs Abs.</th>
+                    <th style={{ width: '75px' }}>Hrs Dim.</th>
+                    <th style={{ width: '75px' }}>Jrs Fériés</th>
+                    <th style={{ width: '85px' }}>Fériés Trav.</th>
+                    <th style={{ width: '75px' }}>Congés</th>
+                    <th style={{ width: '90px' }}>Dpl. Maroc</th>
+                    <th style={{ width: '75px' }}>Paniers</th>
+                    <th style={{ width: '75px' }}>Détente</th>
+                    <th style={{ width: '90px' }}>Dpl. Expat.</th>
+                    <th style={{ width: '80px' }}>Récup.</th>
+                    <th style={{ width: '75px' }}>Maladie</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -419,7 +424,7 @@ const Vue_Globale_du_Pointage = () => {
                         <td><span className="supervisor-name-cell">{row.supervisorName}</span></td>
                         <td style={{ fontWeight: 600, transition: 'color 0.2s' }}>{row.name}</td>
                         <td><code className="matricule-code">{row.matricule}</code></td>
-                        <td>{row.affaireNumber}</td>
+                        <td>{row.affaireNumero}</td>
                         <td>{row.client}</td>
                         <td>{row.site}</td>
                         <td>{row.siteWorkshop}</td>
@@ -448,9 +453,9 @@ const Vue_Globale_du_Pointage = () => {
                         <td>{row.recoveryDays}</td>
                         <td>{row.sickLeaveDays}</td>
                       </tr>
-                        ))
+                    ))
                   )}
-                      </tbody>
+                </tbody>
               </table>
             </div>
 

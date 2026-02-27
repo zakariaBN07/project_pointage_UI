@@ -11,6 +11,7 @@ const Liste_des_Gestionnaires = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [roleFilter, setRoleFilter] = useState('Tous');
 
   const fetchGestionnaires = async () => {
     try {
@@ -37,9 +38,13 @@ const Liste_des_Gestionnaires = () => {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
-  const filteredGestionnaires = gestionnaires.filter(
-    g => g.role.toLowerCase() === 'superviseur' || g.role.toLowerCase() === 'responsable'
-  );
+  const filteredGestionnaires = gestionnaires.filter(g => {
+    const isBaseRole = g.role.toLowerCase() === 'superviseur' || g.role.toLowerCase() === 'responsable';
+    if (!isBaseRole) return false;
+
+    if (roleFilter === 'Tous') return true;
+    return g.role.toLowerCase() === roleFilter.toLowerCase();
+  });
 
   const generatePassword = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
@@ -212,6 +217,23 @@ const Liste_des_Gestionnaires = () => {
           {successMessage}
         </div>
       )}
+
+      <div className="role-filter-tabs">
+        {['Tous', 'Superviseur', 'Responsable'].map((role) => (
+          <button
+            key={role}
+            className={`filter-tab ${roleFilter === role ? 'active' : ''}`}
+            onClick={() => setRoleFilter(role)}
+          >
+            {role === 'Tous' ? 'Tous les Utilisateurs' : (role + 's')}
+            <span className="count-badge">
+              {role === 'Tous'
+                ? gestionnaires.filter(g => g.role.toLowerCase() === 'superviseur' || g.role.toLowerCase() === 'responsable').length
+                : gestionnaires.filter(g => g.role.toLowerCase() === role.toLowerCase()).length}
+            </span>
+          </button>
+        ))}
+      </div>
 
       <div className="card">
         <div className="section-title">

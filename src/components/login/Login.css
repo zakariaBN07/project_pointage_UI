@@ -111,7 +111,7 @@
   width: 100%;
   padding: 0.9rem;
   background: var(--primary-color);
-  color: #f0e8e8;
+  color: gray;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -124,6 +124,7 @@
 
 .login-submit:hover {
   background: var(--primary-hover);
+  color: white;
   box-shadow: 0 4px 12px rgba(86, 26, 28, 0.4);
   transform: translateY(-1px);
 }

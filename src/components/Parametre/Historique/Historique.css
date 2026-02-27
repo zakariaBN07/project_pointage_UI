@@ -1,0 +1,459 @@
+/* ======================================================
+   HISTORIQUE DES NOTIFICATIONS — BACKOFFICE STYLE
+   ====================================================== */
+
+.historique-container {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .07), 0 4px 16px rgba(0, 0, 0, .05);
+    border: 1px solid #e9eef4;
+    padding: 2rem;
+    min-width: 0;
+    animation: hist-fadeIn 0.4s ease-out both;
+}
+
+@keyframes hist-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+
+    /* NOTE: No transform here — any transform on this container would make it
+     the containing block for position:fixed children (the modal), breaking
+     the full-viewport overlay. Use opacity-only for the fade-in. */
+}
+
+/* ── Header ───────────────────────────────────────── */
+.historique-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.historique-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ── Clear button ─────────────────────────────────── */
+.clear-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.clear-history-btn:hover {
+    background: #ef4444;
+    color: #fff;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(239, 68, 68, .3);
+}
+
+/* ── Empty state ──────────────────────────────────── */
+.hist-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.95rem;
+    background: #fafbfc;
+    border: 1px dashed #e2e8f0;
+    border-radius: 10px;
+}
+
+/* ── Filter tab bar ───────────────────────────────── */
+.hist-filter-bar {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border: 1px solid #e9eef4;
+    border-radius: 10px;
+}
+
+.hist-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+}
+
+.hist-filter-btn:hover:not(.active) {
+    background: #fff;
+    color: #1e293b;
+    border-color: #e2e8f0;
+}
+
+.hist-filter-btn.active {
+    background: #1e293b;
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+}
+
+.hist-filter-btn.active.success {
+    background: #16a34a;
+    border-color: #15803d;
+}
+
+.hist-filter-btn.active.warning {
+    background: #ea580c;
+    border-color: #c2410c;
+}
+
+.hist-filter-btn.active.error {
+    background: #dc2626;
+    border-color: #b91c1c;
+}
+
+/* ── Notification cards grid ──────────────────────── */
+.hist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* ── Single notification card ─────────────────────── */
+.hist-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid #e9eef4;
+    background: #ffffff;
+    cursor: default;
+    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+    border-left: 4px solid #e2e8f0;
+}
+
+.hist-card.clickable {
+    cursor: pointer;
+}
+
+.hist-card.clickable:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+    transform: translateY(-2px);
+}
+
+.hist-card.type-success {
+    border-left-color: #22c55e;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.hist-card.type-warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.hist-card.type-error {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.hist-card.type-info {
+    border-left-color: #3b82f6;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+/* Card top row */
+.hist-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.hist-card-message {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.hist-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.hist-time-badge {
+    font-size: 0.72rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, .7);
+    border: 1px solid #e2e8f0;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* Delete button */
+.hist-delete-btn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+}
+
+.hist-delete-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Card footer row */
+.hist-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.hist-type-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.hist-type-badge.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.hist-type-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.hist-type-badge.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.hist-type-badge.info {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.hist-detail-link {
+    font-size: 0.78rem;
+    color: #3b82f6;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DETAIL MODAL (pointage export table)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.hist-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 1rem;
+}
+
+.hist-modal {
+    background: #ffffff;
+    border-radius: 14px;
+    max-width: 92vw;
+    max-height: 88vh;
+    overflow: auto;
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .25);
+    animation: modal-in 0.2s ease-out both;
+    min-width: min(700px, 90vw);
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.hist-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #475569;
+    transition: background 0.15s, color 0.15s;
+}
+
+.hist-modal-close:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hist-modal h2 {
+    margin: 0 0 0.3rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.hist-modal-subtitle {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    display: block;
+}
+
+/* Detail table */
+.hist-detail-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.hist-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.hist-detail-table thead {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.hist-detail-table thead th {
+    padding: 0.75rem 0.9rem;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+    white-space: nowrap;
+    border-bottom: 2px solid #0f172a;
+    background: transparent !important;
+    border-top: none;
+}
+
+.hist-detail-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.hist-detail-table tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+.hist-detail-table tbody tr:hover {
+    background: #eff6ff !important;
+}
+
+.hist-detail-table td {
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.hist-detail-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.hist-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 640px) {
+    .historique-container {
+        padding: 1.25rem 1rem;
+    }
+
+    .hist-filter-bar {
+        gap: 0.3rem;
+    }
+
+    .hist-filter-btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.65rem;
+    }
+}

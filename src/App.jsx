@@ -51,16 +51,16 @@ function App() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <img 
-            src={logoImg} 
-            alt="Logo" 
-            className="logo-icon" 
-            style={{ height: '66px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }} 
+          <img
+            src={logoImg}
+            alt="Logo"
+            className="logo-icon"
+            style={{ height: '66px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }}
             onClick={() => setCurrentPage('dashboard')}
           />
         </div>
         <nav className="sidebar-nav">
-          <div 
+          <div
             className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
             onClick={() => setCurrentPage('dashboard')}
             style={{ cursor: 'pointer' }}
@@ -68,10 +68,10 @@ function App() {
             <MdHome size={20} />
             <span>Tableau de bord</span>
           </div>
-          
+
           {user.role === 'admin' && (
             <>
-              <div 
+              <div
                 className={`nav-item ${currentPage === 'lists' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('lists')}
                 style={{ cursor: 'pointer' }}
@@ -79,7 +79,7 @@ function App() {
                 <MdPeople size={20} />
                 <span>Gestionnaires</span>
               </div>
-              <div 
+              <div
                 className={`nav-item ${currentPage === 'pointage' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('pointage')}
                 style={{ cursor: 'pointer' }}
@@ -87,7 +87,7 @@ function App() {
                 <MdEventNote size={20} />
                 <span>Pointages</span>
               </div>
-              <div 
+              <div
                 className={`nav-item ${currentPage === 'parametre' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('parametre')}
                 style={{ cursor: 'pointer' }}
@@ -98,23 +98,23 @@ function App() {
             </>
           )}
         </nav>
-        {user.role === 'admin' && (
-          <div className="sidebar-notifications">
-            <Notification />
-          </div>
-        )}
       </aside>
 
       <div className="main-content">
         <header className="topbar">
-          <div className="user-profile">
-            <div className="user-info">
-              <span className="user-name">{user.name || user.username}</span>
-              <span className="user-role">{user.role}</span>
+          <div className="topbar-actions">
+            {(user.role === 'admin' || user.role === 'superviseur') && (
+              <Notification user={user} />
+            )}
+            <div className="user-profile">
+              <div className="user-info">
+                <span className="user-name">{user.name || user.username}</span>
+                <span className="user-role">{user.role}</span>
+              </div>
+              <button onClick={handleLogout} className="logout-btn">
+                Déconnexion
+              </button>
             </div>
-            <button onClick={handleLogout} className="logout-btn">
-              Déconnexion
-            </button>
           </div>
         </header>
 
@@ -134,7 +134,7 @@ function App() {
           )}
         </main>
       </div>
-    </div>
+    </div >
   )
 }
 
