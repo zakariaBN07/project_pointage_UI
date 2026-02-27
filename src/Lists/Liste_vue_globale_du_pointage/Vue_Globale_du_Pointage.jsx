@@ -10,6 +10,10 @@ const Vue_Globale_du_Pointage = () => {
   const [allPointage, setAllPointage] = useState([]);
   const [pointageLoading, setPointageLoading] = useState(false);
 
+  // ─── Formatting Helpers ───────────────────────────────────────────────
+  const formatHours = (h) => (h == null || parseFloat(h) === 0) ? '0h' : `${Math.round(h)}h`;
+  const formatDays = (d) => (d == null || parseFloat(d) === 0) ? 0 : Math.max(1, Math.round(d));
+
   const [filterSupervisors, setFilterSupervisors] = useState([]);
   const [filterEntreeFrom, setFilterEntreeFrom] = useState(null);
   const [filterEntreeTo, setFilterEntreeTo] = useState(null);
@@ -66,20 +70,20 @@ const Vue_Globale_du_Pointage = () => {
             pointageSortie: emp.pointageSortie || '-',
             status: emp.status || 'En attente',
             date: emp.date || null,
-            totalHoursWorked: emp.totalHoursWorked || 0,
-            daysWorked: emp.daysWorked || 0,
-            daysAbsent: emp.daysAbsent || 0,
-            totalSundayHours: emp.totalSundayHours || 0,
-            holidaysCount: emp.holidaysCount || 0,
-            workedHolidaysCount: emp.workedHolidaysCount || 0,
-            leaveDays: emp.leaveDays || 0,
-            moroccoTravelDays: emp.moroccoTravelDays || 0,
-            mealVoucherDays: emp.mealVoucherDays || 0,
-            restDays: emp.restDays || 0,
-            expatTravelDays: emp.expatTravelDays || 0,
-            recoveryDays: emp.recoveryDays || 0,
-            sickLeaveDays: emp.sickLeaveDays || 0,
-            siteWorkshop: emp.siteWorkshop || '-',
+            totHrsTravaillees: emp.totHrsTravaillees || 0,
+            nbrJrsTravaillees: emp.nbrJrsTravaillees || 0,
+            nbrJrsAbsence: emp.nbrJrsAbsence || 0,
+            totHrsDimanche: emp.totHrsDimanche || 0,
+            nbrJrsFeries: emp.nbrJrsFeries || 0,
+            nbrJrsFeriesTravailes: emp.nbrJrsFeriesTravailes || 0,
+            nbrJrsConges: emp.nbrJrsConges || 0,
+            nbrJrsDeplacementsMaroc: emp.nbrJrsDeplacementsMaroc || 0,
+            nbrJrsPaniers: emp.nbrJrsPaniers || 0,
+            nbrJrsDetente: emp.nbrJrsDetente || 0,
+            nbrJrsDeplacementsExpatrie: emp.nbrJrsDeplacementsExpatrie || 0,
+            nbrJrsRecuperation: emp.nbrJrsRecuperation || 0,
+            nbrJrsMaladie: emp.nbrJrsMaladie || 0,
+            chantierAtelier: emp.chantierAtelier || emp.siteWorkshop || '-',
             affaireNumero: emp.affaireNumero || '-',
             client: emp.client || '-',
             site: emp.site || '-',
@@ -128,9 +132,9 @@ const Vue_Globale_du_Pointage = () => {
     return allPointage.filter(row => {
       if (filterSupervisors.length > 0 && !filterSupervisors.includes(row.supervisorName)) return false;
       if (filterStatus && row.status !== filterStatus) return false;
-      if (filterSiteWorkshop && !row.siteWorkshop.toLowerCase().includes(filterSiteWorkshop.toLowerCase())) return false;
-      if (filterMinHours && row.totalHoursWorked < parseFloat(filterMinHours)) return false;
-      if (filterMinDays && row.daysWorked < parseFloat(filterMinDays)) return false;
+      if (filterSiteWorkshop && !row.chantierAtelier.toLowerCase().includes(filterSiteWorkshop.toLowerCase())) return false;
+      if (filterMinHours && row.totHrsTravaillees < parseFloat(filterMinHours)) return false;
+      if (filterMinDays && row.nbrJrsTravaillees < parseFloat(filterMinDays)) return false;
       if (filterEntreeFrom || filterEntreeTo) {
         const entree = timeToMinutes(row.pointageEntree);
         if (entree === null) return false;
@@ -427,7 +431,7 @@ const Vue_Globale_du_Pointage = () => {
                         <td>{row.affaireNumero}</td>
                         <td>{row.client}</td>
                         <td>{row.site}</td>
-                        <td>{row.siteWorkshop}</td>
+                        <td>{row.chantierAtelier}</td>
                         <td>{row.pointageEntree}</td>
                         <td>{row.pointageSortie}</td>
                         <td>
@@ -439,19 +443,19 @@ const Vue_Globale_du_Pointage = () => {
                             {row.status}
                           </span>
                         </td>
-                        <td>{row.totalHoursWorked}</td>
-                        <td>{row.daysWorked}</td>
-                        <td>{row.daysAbsent}</td>
-                        <td>{row.totalSundayHours}</td>
-                        <td>{row.holidaysCount}</td>
-                        <td>{row.workedHolidaysCount}</td>
-                        <td>{row.leaveDays}</td>
-                        <td>{row.moroccoTravelDays}</td>
-                        <td>{row.mealVoucherDays}</td>
-                        <td>{row.restDays}</td>
-                        <td>{row.expatTravelDays}</td>
-                        <td>{row.recoveryDays}</td>
-                        <td>{row.sickLeaveDays}</td>
+                        <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
+                        <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
+                        <td>{formatDays(row.nbrJrsAbsence)}</td>
+                        <td style={{ color: '#4f46e5' }}>{formatHours(row.totHrsDimanche)}</td>
+                        <td>{formatDays(row.nbrJrsFeries)}</td>
+                        <td>{formatDays(row.nbrJrsFeriesTravailes)}</td>
+                        <td>{formatDays(row.nbrJrsConges)}</td>
+                        <td>{formatDays(row.nbrJrsDeplacementsMaroc)}</td>
+                        <td>{formatDays(row.nbrJrsPaniers)}</td>
+                        <td>{formatDays(row.nbrJrsDetente)}</td>
+                        <td>{formatDays(row.nbrJrsDeplacementsExpatrie)}</td>
+                        <td>{formatDays(row.nbrJrsRecuperation)}</td>
+                        <td>{formatDays(row.nbrJrsMaladie)}</td>
                       </tr>
                     ))
                   )}

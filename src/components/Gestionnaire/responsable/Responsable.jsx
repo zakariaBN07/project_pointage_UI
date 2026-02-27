@@ -882,7 +882,7 @@ const Responsable = ({ user }) => {
                       <label>Jrs Absence</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         value={activeActivityModal.nbrJrsAbsence || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -895,7 +895,7 @@ const Responsable = ({ user }) => {
                       <label>Jrs Congés</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         value={activeActivityModal.nbrJrsConges || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -908,7 +908,7 @@ const Responsable = ({ user }) => {
                       <label>Jrs Maladie</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         value={activeActivityModal.nbrJrsMaladie || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -921,7 +921,7 @@ const Responsable = ({ user }) => {
                       <label>Jrs Récup.</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         value={activeActivityModal.nbrJrsRecuperation || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -940,7 +940,7 @@ const Responsable = ({ user }) => {
                       <label>Hrs Dimanche</label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="1"
                         value={activeActivityModal.totHrsDimanche || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
