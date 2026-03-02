@@ -1,8 +1,9 @@
 import React, { useContext, useState } from 'react';
-import { NotificationContext } from '../../context/NotificationContext';
+import { NotificationContext } from '../NotificationContext';
 import './Notification.css';
+import { FaBell, FaRegBell } from "react-icons/fa";
 
-const Notification = ({ user }) => {
+const NotificationPanel = ({ user }) => {
   const { notifications, dismissNotification, clearAll, addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
 
@@ -91,7 +92,9 @@ const Notification = ({ user }) => {
         onClick={() => setIsOpen(!isOpen)}
         title="Notifications"
       >
-        <span className="bell-icon">🔔</span>
+        <span className="bell-icon">
+          {visibleNotifications.length > 0 ? <FaBell /> : <FaRegBell />}
+        </span>
         {visibleNotifications.length > 0 && (
           <span className="notification-badge">{visibleNotifications.length}</span>
         )}
@@ -274,4 +277,4 @@ const Notification = ({ user }) => {
   );
 };
 
-export default Notification;
+export default NotificationPanel;

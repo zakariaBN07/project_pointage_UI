@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import './Vue_Globale_du_Pointage.css';
+import './VueGlobale.css';
 
-const Vue_Globale_du_Pointage = () => {
+const VueGlobalePage = () => {
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const [gestionnaires, setGestionnaires] = useState([]);
@@ -58,8 +58,15 @@ const Vue_Globale_du_Pointage = () => {
       if (response.ok) {
         const data = await response.json();
         const supervisorMap = Object.fromEntries((gestList || gestionnaires).map(g => [g.id, g.name]));
+        const seen = new Set();
         const enriched = data
-          .filter(emp => emp.role === 'employé' || !emp.role)
+          .filter(emp => {
+            if (emp.role !== 'employé' && emp.role) return false;
+            const key = `${emp.name.toLowerCase().trim()}_${(emp.matricule || '').toLowerCase().trim()}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
           .map(emp => ({
             id: emp.id,
             // Check both supervisorId and responsableId to find the manager's name
@@ -395,9 +402,9 @@ const Vue_Globale_du_Pointage = () => {
                     <th style={{ width: '100px' }}>Client</th>
                     <th style={{ width: '90px' }}>Site</th>
                     <th style={{ width: '110px' }}>Chantier/Atelier</th>
-                    <th style={{ width: '100px' }}>Pointage d'entrée</th>
+                    {/* <th style={{ width: '100px' }}>Pointage d'entrée</th>
                     <th style={{ width: '100px' }}>Pointage de sortie</th>
-                    <th style={{ width: '90px' }}>Statut</th>
+                    <th style={{ width: '90px' }}>Statut</th> */}
                     <th style={{ width: '80px' }}>Tot.Hrs trav.</th>
                     <th style={{ width: '75px' }}>Jrs trav.</th>
                     <th style={{ width: '75px' }}>Jrs Abs.</th>
@@ -432,7 +439,7 @@ const Vue_Globale_du_Pointage = () => {
                         <td>{row.client}</td>
                         <td>{row.site}</td>
                         <td>{row.chantierAtelier}</td>
-                        <td>{row.pointageEntree}</td>
+                        {/* <td>{row.pointageEntree}</td>
                         <td>{row.pointageSortie}</td>
                         <td>
                           <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
@@ -442,7 +449,7 @@ const Vue_Globale_du_Pointage = () => {
                             }`}>
                             {row.status}
                           </span>
-                        </td>
+                        </td> */}
                         <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
                         <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
                         <td>{formatDays(row.nbrJrsAbsence)}</td>
@@ -499,4 +506,4 @@ const Vue_Globale_du_Pointage = () => {
   );
 };
 
-export default Vue_Globale_du_Pointage;
+export default VueGlobalePage;

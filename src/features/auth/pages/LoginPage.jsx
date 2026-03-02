@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Login.css';
-import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
+import logoImg from '../../../assets/images/logos/ca2e-removebg-preview.png';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ name: '', password: '' });

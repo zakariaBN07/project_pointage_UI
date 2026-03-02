@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ResetPassword.css';
-import logoImg from '../../assets/images/logos/ca2e-removebg-preview.png';
+import logoImg from '../../../assets/images/logos/ca2e-removebg-preview.png';
 
 const ResetPassword = ({ onResetComplete }) => {
   const [password, setPassword] = useState('');

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import './App.css'
-import logoImg from './assets/images/logos/ca2e-removebg-preview.png'
-import Login from './components//login/Login'
-import ResetPassword from './components/login/ResetPassword'
-import Admin from './components/Admin/Admin'
-import Superviseur from './components/Gestionnaire/superviseur/Superviseur'
-import Responsable from './components/Gestionnaire/responsable/Responsable'
-import Notification from './components/Notification/Notification'
-import Parametre from './components/Parametre/Parametre'
-import Liste_des_Gestionnaires from './Lists/Liste_des_Gestionnaires/Liste_des_Gestionnaires'
-import Vue_Globale_du_Pointage from './Lists/Liste_vue_globale_du_pointage/Vue_Globale_du_Pointage'
+import logoImg from '../assets/images/logos/ca2e-removebg-preview.png'
+import LoginPage from '../features/auth/pages/LoginPage'
+import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
+import AdminPage from '../features/dashboard/pages/AdminPage'
+import SuperviseurPage from '../features/employees/pages/SuperviseurPage'
+import ResponsablePage from '../features/employees/pages/ResponsablePage'
+import NotificationPanel from '../features/notifications/components/NotificationBell'
+import SettingsPage from '../features/settings/pages/SettingsPage'
+import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
+import VueGlobalePage from '../features/employees/pages/VueGlobalePage'
 import { MdHome, MdPeople, MdEventNote, MdSettings } from "react-icons/md";
+
 
 function App() {
   const [user, setUser] = useState(null)
@@ -40,11 +41,11 @@ function App() {
   };
 
   if (showResetPassword) {
-    return <ResetPassword onResetComplete={handleResetComplete} />;
+    return <ResetPasswordPage onResetComplete={handleResetComplete} />;
   }
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   return (
@@ -104,7 +105,7 @@ function App() {
         <header className="topbar">
           <div className="topbar-actions">
             {(user.role === 'admin' || user.role === 'superviseur') && (
-              <Notification user={user} />
+              <NotificationPanel user={user} />
             )}
             <div className="user-profile">
               <div className="user-info">
@@ -120,21 +121,22 @@ function App() {
 
         <main className="content-body">
           {currentPage === 'parametre' && user.role === 'admin' ? (
-            <Parametre />
+            <SettingsPage />
           ) : currentPage === 'lists' && user.role === 'admin' ? (
-            <Liste_des_Gestionnaires />
+            <GestionnairesPage />
           ) : currentPage === 'pointage' && user.role === 'admin' ? (
-            <Vue_Globale_du_Pointage />
+            <VueGlobalePage />
           ) : (
             <>
-              {user.role === 'admin' && <Admin />}
-              {user.role === 'superviseur' && <Superviseur user={user} />}
-              {user.role === 'Responsable' && <Responsable user={user} />}
+              {user.role === 'admin' && <AdminPage />}
+              {user.role === 'superviseur' && <SuperviseurPage user={user} />}
+              {user.role === 'Responsable' && <ResponsablePage user={user} />}
             </>
           )}
         </main>
       </div>
     </div >
+
   )
 }
 

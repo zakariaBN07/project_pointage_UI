@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import * as XLSX from 'xlsx';
-import { NotificationContext } from '../../../context/NotificationContext';
+import { NotificationContext } from '../../notifications/NotificationContext';
 import {
   FaSync,
   FaFileExport,
-  FaFileImport,
   FaClipboardList,
   FaUsers,
   FaUserCheck,
@@ -26,7 +25,7 @@ import './Superviseur.css';
 const formatHours = (h) => (h == null || parseFloat(h) === 0) ? '0h' : `${Math.round(h)}h`;
 const formatDays = (d) => (d == null || parseFloat(d) === 0) ? 0 : Math.max(1, Math.round(d));
 
-const Superviseur = ({ user }) => {
+const SuperviseurPage = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const [reports, setReports] = useState([]);
@@ -91,98 +90,6 @@ const Superviseur = ({ user }) => {
     XLSX.writeFile(workbook, "List_Employees.xlsx");
   };
 
-  const handleImportEmployees = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const bstr = event.target.result;
-      const workbook = XLSX.read(bstr, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-
-      // Convert to array of arrays to find the header row accurately
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      let headerRowIndex = -1;
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (row && Array.isArray(row)) {
-          // Check if any cell in this row looks like a "Name" header
-          const hasNameHeader = row.some(cell => {
-            const s = String(cell || '').toLowerCase().trim();
-            return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
-          });
-
-          if (hasNameHeader) {
-            headerRowIndex = i;
-            break;
-          }
-        }
-      }
-
-      if (headerRowIndex === -1) {
-        alert("Impossible de trouver la colonne 'Nom complet' ou 'Nom' dans votre fichier Excel. Vérifiez l'en-tête de votre fichier.");
-        return;
-      }
-
-      // Read data from the detected header row
-      const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
-
-      for (const row of rawData) {
-        // Dynamically find the right keys in case of small spelling/space differences
-        const keys = Object.keys(row);
-        const nameKey = keys.find(k => {
-          const s = k.toLowerCase().trim();
-          return s.includes('nom complet') || s === 'nom' || s.includes('nom de l\'employé');
-        });
-        const matriculeKey = keys.find(k => {
-          const s = k.toLowerCase().trim();
-          return s.includes('matricule') || s === 'matricule' || s.includes('matricule de l\'employé');
-        });
-        const affaireKey = keys.find(k => k.toLowerCase().trim().includes('affaire'));
-        const clientKey = keys.find(k => k.toLowerCase().trim().includes('client'));
-        const siteKey = keys.find(k => k.toLowerCase().trim().includes('site'));
-        const hoursKey = keys.find(k => k.toLowerCase().trim().includes('tot.hrs') || k.toLowerCase().trim().includes('heures'));
-        const daysKey = keys.find(k => k.toLowerCase().trim().includes('jrs trav') || k.toLowerCase().trim().includes('jours'));
-
-        const name = nameKey ? row[nameKey] : null;
-        const matricule = matriculeKey ? row[matriculeKey] : '-';
-        const affaireNumero = affaireKey ? row[affaireKey] : '-';
-        const client = clientKey ? row[clientKey] : '-';
-        const site = siteKey ? row[siteKey] : '-';
-        const totalHoursWorked = hoursKey ? row[hoursKey] : 0;
-        const daysWorked = daysKey ? row[daysKey] : 0;
-
-        // Skip header duplicates or empty names
-        if (!name || String(name).toLowerCase().trim().includes('nom complet')) continue;
-
-        try {
-          await fetch(`${API_EMPLOYEE}/employees`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: String(name).trim(),
-              matricule: String(matricule).trim(),
-              supervisorId: user?.id,
-              status: 'En attente',
-              pointageEntree: '-',
-              pointageSortie: '-',
-              affaireNumero: String(affaireNumero).trim(),
-              client: String(client).trim(),
-              site: String(site).trim(),
-              totalHoursWorked: totalHoursWorked,
-              daysWorked: daysWorked
-            }),
-          });
-        } catch (error) {
-          console.error("Error importing employee:", error);
-        }
-      }
-      fetchReports();
-    };
-    reader.readAsBinaryString(file);
-  };
 
   const handleExportReports = async () => {
     setIsExporting(true);
@@ -197,15 +104,24 @@ const Superviseur = ({ user }) => {
         return;
       }
 
-      const latestData = await response.json();
-      const formattedData = latestData.map(emp => ({
-        ...emp,
-        arrivee: emp.pointageEntree || '-',
-        depart: emp.pointageSortie || '-',
-      }));
+      const latestDataRaw = await response.json();
+
+      const seen = new Set();
+      const formattedData = latestDataRaw
+        .filter(emp => {
+          const key = `${emp.name.toLowerCase().trim()}_${(emp.matricule || '').toLowerCase().trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map(emp => ({
+          ...emp,
+          arrivee: emp.pointageEntree || '-',
+          depart: emp.pointageSortie || '-',
+        }));
 
       const dataToExport = formattedData.map(emp => ({
-        'Superviseur': user?.name || 'Non spécifié',
+        // 'Superviseur': user?.name || 'Non spécifié',
         'Nom complet': emp.name,
         'Matricule': emp.matricule,
         'Affaire N°': emp.affaireNumero || '-',
@@ -332,16 +248,6 @@ const Superviseur = ({ user }) => {
             >
               <FaTrash /> Vider la liste
             </button>
-            <input
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleImportEmployees}
-              id="import-employees-superviseur"
-              style={{ display: 'none' }}
-            />
-            <label htmlFor="import-employees-superviseur" className="refresh-btn" style={{ background: '#f1f5f9', color: '#475569', cursor: 'pointer', margin: 0, padding: '0.5rem 0.75rem' }}>
-              <FaFileImport /> Importer Excel
-            </label>
             <button
               onClick={handleExportEmployees}
               className="refresh-btn"
@@ -378,8 +284,8 @@ const Superviseur = ({ user }) => {
                     <th>Heure de Sortie</th>
                     <th style={{ textAlign: 'center' }}>Statut</th>
                     <th style={{ textAlign: 'center' }}>Détails</th>
-                    <th style={{ textAlign: 'center' }}>Tot.Hrs trav.</th>
-                    <th style={{ textAlign: 'center' }}>Jrs trav.</th>
+                    {/* <th style={{ textAlign: 'center' }}>Tot.Hrs trav.</th>
+                    <th style={{ textAlign: 'center' }}>Jrs trav.</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -407,8 +313,8 @@ const Superviseur = ({ user }) => {
                             <FaClipboardList />
                           </button>
                         </td>
-                        <td style={{ textAlign: 'center', fontWeight: 600, color: '#4f46e5' }}>{formatHours(report.totHrsTravaillees)}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 600, color: '#10b981' }}>{formatDays(report.nbrJrsTravaillees)}</td>
+                        {/* <td style={{ textAlign: 'center', fontWeight: 600, color: '#4f46e5' }}>{formatHours(report.totHrsTravaillees)}</td>
+                        <td style={{ textAlign: 'center', fontWeight: 600, color: '#10b981' }}>{formatDays(report.nbrJrsTravaillees)}</td> */}
                       </tr>
                     ))
                   )}
@@ -566,4 +472,4 @@ const Superviseur = ({ user }) => {
   );
 };
 
-export default Superviseur;
+export default SuperviseurPage;

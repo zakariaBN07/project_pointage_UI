@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { NotificationContext } from '../../../context/NotificationContext';
+import { NotificationContext } from '../../notifications/NotificationContext';
 import {
   FaUsers,
   FaUserCheck,
@@ -26,7 +26,7 @@ import {
 } from 'react-icons/fa';
 import './Responsable.css';
 
-const Responsable = ({ user }) => {
+const ResponsablePage = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
@@ -159,6 +159,17 @@ const Responsable = ({ user }) => {
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     if (newEmployee.name.trim() && newEmployee.matricule.trim()) {
+      // Prevent duplicates
+      const isDuplicate = employeesPointage.some(emp =>
+        emp.name.toLowerCase().trim() === newEmployee.name.toLowerCase().trim() &&
+        emp.matricule.toLowerCase().trim() === newEmployee.matricule.toLowerCase().trim()
+      );
+
+      if (isDuplicate) {
+        addNotification(`L'employé "${newEmployee.name}" avec le matricule "${newEmployee.matricule}" existe déjà.`, 'warning');
+        return;
+      }
+
       try {
         const response = await fetch(`${API_EMPLOYEE}/employees`, {
           method: 'POST',
@@ -198,18 +209,29 @@ const Responsable = ({ user }) => {
     }
   };
 
-  const handleDeleteEmployee = async (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet employé ?")) {
-      try {
-        const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          fetchEmployeesToSupervise();
-        }
-      } catch (error) {
-        console.error("Error deleting employee:", error);
-      }
+  const handleDeleteList = async () => {
+    if (!selectedSupervisorId) {
+      alert("Veuillez sélectionner un superviseur.");
+      return;
+    }
+
+    if (!window.confirm("Supprimer tous les employés de ce superviseur ?")) return;
+
+    const employeesToDelete = supervisedEmployees;
+
+    try {
+      await Promise.all(
+        employeesToDelete.map(emp =>
+          fetch(`${API_EMPLOYEE}/employees/${emp.id}`, {
+            method: "DELETE"
+          })
+        )
+      );
+
+      fetchEmployeesToSupervise();
+      addNotification("Liste supprimée avec succès.", "success");
+    } catch (error) {
+      console.error("Erreur suppression liste:", error);
     }
   };
 
@@ -441,13 +463,27 @@ const Responsable = ({ user }) => {
           String(name).toLowerCase().trim() === 'nom' ||
           String(name).toLowerCase().trim().includes('total')) continue;
 
+        const normalizedName = String(name).trim();
+        const normalizedMatricule = matricule ? String(matricule).trim() : '';
+
+        // Prevent duplicates from spreadsheet or already in system
+        const alreadyExists = employeesPointage.some(emp =>
+          emp.name.toLowerCase().trim() === normalizedName.toLowerCase() &&
+          emp.matricule.toLowerCase().trim() === normalizedMatricule.toLowerCase()
+        );
+
+        if (alreadyExists) {
+          console.warn(`Skipping duplicate: ${normalizedName} (${normalizedMatricule})`);
+          continue;
+        }
+
         try {
           await fetch(`${API_EMPLOYEE}/employees`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              name: String(name).trim(),
-              matricule: matricule ? String(matricule).trim() : '',
+              name: normalizedName,
+              matricule: normalizedMatricule,
               responsableId: user?.id,
               supervisorId: selectedSupervisorId || '',
               role: 'employé',
@@ -489,10 +525,21 @@ const Responsable = ({ user }) => {
         return;
       }
 
-      const rawData = await response.json();
-      const latestEmployees = rawData
+      const latestEmployeesRaw = await response.json();
+
+      // Filter and Deduplicate based on name + matricule just in case
+      const seen = new Set();
+      const latestEmployees = latestEmployeesRaw
         .map(({ password, ...rest }) => rest)
-        .filter(emp => (emp.role === 'employé' || !emp.role) && String(emp.supervisorId) === String(selectedSupervisorId));
+        .filter(emp => {
+          const isEligible = (emp.role === 'employé' || !emp.role) && String(emp.supervisorId) === String(selectedSupervisorId);
+          if (!isEligible) return false;
+
+          const key = `${emp.name.toLowerCase().trim()}_${(emp.matricule || '').toLowerCase().trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
 
       const targetSupervisor = supervisors.find(s => String(s.id) === String(selectedSupervisorId));
       const supervisorName = targetSupervisor ? targetSupervisor.name : 'Superviseur';
@@ -757,12 +804,19 @@ const Responsable = ({ user }) => {
       <section className="main-table-card card">
         <div className="table-header">
           <h2><FaFileImport /> Liste des Employés : <span>{supervisors.find(s => String(s.id) === String(selectedSupervisorId))?.name || 'Veuillez choisir un superviseur'}</span></h2>
-          <div className="table-actions">
+          <div className="table-actions" style={{ display: 'flex', gap: '10px' }}>
             <button onClick={handleExportEmployees} className="btn-icon-label" title="Exporter Liste">
               <FaFileExport /> <span>Liste Excel</span>
             </button>
-            <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
-              <FaSync />
+            {/* <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
+              <FaSync /> 
+            </button> */}
+            <button
+              onClick={handleDeleteList}
+              className="btn-icon-label"
+              title="Supprimer Liste"
+            >
+              <FaTrash /> <span>Supprimer Liste</span>
             </button>
           </div>
         </div>
@@ -1130,4 +1184,4 @@ const Responsable = ({ user }) => {
   );
 };
 
-export default Responsable;
+export default ResponsablePage;

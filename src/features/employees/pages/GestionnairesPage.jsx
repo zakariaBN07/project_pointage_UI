@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import './Liste_des_Gestionnaires.css';
+import './Gestionnaires.css';
 
-const Liste_des_Gestionnaires = () => {
+const GestionnairesPage = () => {
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
   const [gestionnaires, setGestionnaires] = useState([]);
   const [newGestionnaire, setNewGestionnaire] = useState({ name: '', email: '', role: 'superviseur', password: '', siege: '' });
@@ -58,6 +58,17 @@ const Liste_des_Gestionnaires = () => {
   const handleAddGestionnaire = async (e) => {
     e.preventDefault();
     if (newGestionnaire.name.trim()) {
+      // Check for duplicates
+      const isDuplicate = gestionnaires.some(g =>
+        g.email.toLowerCase().trim() === newGestionnaire.email.toLowerCase().trim() ||
+        g.name.toLowerCase().trim() === newGestionnaire.name.toLowerCase().trim()
+      );
+
+      if (isDuplicate) {
+        alert(`L'utilisateur "${newGestionnaire.name}" ou l'email "${newGestionnaire.email}" existe déjà.`);
+        return;
+      }
+
       try {
         const payload = {
           name: newGestionnaire.name.trim(),
@@ -183,14 +194,30 @@ const Liste_des_Gestionnaires = () => {
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       for (const row of data) {
+        const normalizedName = String(row['Nom'] || '').trim();
+        const normalizedEmail = String(row['Email'] || '').trim();
+
+        if (!normalizedName) continue;
+
+        // Check for duplicates
+        const alreadyExists = gestionnaires.some(g =>
+          g.name.toLowerCase().trim() === normalizedName.toLowerCase() ||
+          (normalizedEmail && g.email.toLowerCase().trim() === normalizedEmail.toLowerCase())
+        );
+
+        if (alreadyExists) {
+          console.warn(`Skipping duplicate gestionnaire: ${normalizedName}`);
+          continue;
+        }
+
         try {
           await fetch(`${API_ADMIN}/gestionnaires`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              name: row['Nom'],
+              name: normalizedName,
               role: row['Rôle'] || 'superviseur',
-              email: row['Email'] || '',
+              email: normalizedEmail,
               password: row['Mot de passe'] || Math.random().toString(36).slice(-8),
             }),
           });
@@ -308,47 +335,54 @@ const Liste_des_Gestionnaires = () => {
               <h3>Nouvel Utilisateur</h3>
             </div>
             <form onSubmit={handleAddGestionnaire}>
-              <div className="form-group">
-                <label>Nom Complet</label>
-                <input
-                  type="text"
-                  value={newGestionnaire.name}
-                  onChange={(e) => setNewGestionnaire({ ...newGestionnaire, name: e.target.value })}
-                  placeholder=""
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Adresse e-mail</label>
-                <input
-                  type="email"
-                  value={newGestionnaire.email}
-                  onChange={(e) => setNewGestionnaire({ ...newGestionnaire, email: e.target.value })}
-                  placeholder=""
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Rôle</label>
-                <select
-                  value={newGestionnaire.role}
-                  onChange={(e) => setNewGestionnaire({ ...newGestionnaire, role: e.target.value, siege: e.target.value !== 'superviseur' ? '' : newGestionnaire.siege })}
-                >
-                  <option value="superviseur">Superviseur</option>
-                  <option value="Responsable">Responsable</option>
-                </select>
-              </div>
-              {newGestionnaire.role === 'superviseur' && (
+              <div className="form-row">
                 <div className="form-group">
-                  <label>Siège</label>
+                  <label>Nom Complet</label>
                   <input
                     type="text"
-                    value={newGestionnaire.siege}
-                    onChange={(e) => setNewGestionnaire({ ...newGestionnaire, siege: e.target.value })}
-                    placeholder="Ex: Alger, Oran..."
+                    value={newGestionnaire.name}
+                    onChange={(e) => setNewGestionnaire({ ...newGestionnaire, name: e.target.value })}
+                    placeholder=""
+                    required
                   />
                 </div>
-              )}
+                <div className="form-group">
+                  <label>Adresse e-mail</label>
+                  <input
+                    type="email"
+                    value={newGestionnaire.email}
+                    onChange={(e) => setNewGestionnaire({ ...newGestionnaire, email: e.target.value })}
+                    placeholder=""
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Rôle</label>
+                  <select
+                    value={newGestionnaire.role}
+                    onChange={(e) => setNewGestionnaire({ ...newGestionnaire, role: e.target.value, siege: e.target.value !== 'superviseur' ? '' : newGestionnaire.siege })}
+                  >
+                    <option value="superviseur">Superviseur</option>
+                    <option value="Responsable">Responsable</option>
+                  </select>
+                </div>
+                {newGestionnaire.role === 'superviseur' ? (
+                  <div className="form-group">
+                    <label>Siège</label>
+                    <input
+                      type="text"
+                      value={newGestionnaire.siege}
+                      onChange={(e) => setNewGestionnaire({ ...newGestionnaire, siege: e.target.value })}
+                      placeholder="Ex: Alger, Oran..."
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group"></div>
+                )}
+              </div>
               <div className="form-group">
                 <label>Mot de passe</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -392,49 +426,56 @@ const Liste_des_Gestionnaires = () => {
             <div className="modal-header">
               <h3>Modifier l'utilisateur</h3>
             </div>
-            <div className="form-group">
-              <label>Nom Complet</label>
-              <input
-                type="text"
-                name="name"
-                value={editGestionnaire.name}
-                onChange={handleEditChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Rôle</label>
-              <select
-                name="role"
-                value={editGestionnaire.role}
-                onChange={handleEditChange}
-              >
-                <option value="superviseur">Superviseur</option>
-                <option value="Responsable">Responsable</option>
-              </select>
-            </div>
-            {editGestionnaire.role === 'superviseur' && (
+            <div className="form-row">
               <div className="form-group">
-                <label>Siège</label>
+                <label>Nom Complet</label>
                 <input
                   type="text"
-                  name="siege"
-                  value={editGestionnaire.siege}
+                  name="name"
+                  value={editGestionnaire.name}
                   onChange={handleEditChange}
-                  placeholder="Ex: Alger, Oran..."
+                  required
                 />
               </div>
-            )}
-            <div className="form-group">
-              <label>Nouveau mot de passe</label>
-              <div className="password-input-wrapper">
-                <input
-                  type="password"
-                  name="password"
-                  value={editGestionnaire.password}
+              <div className="form-group">
+                <label>Rôle</label>
+                <select
+                  name="role"
+                  value={editGestionnaire.role}
                   onChange={handleEditChange}
-                  placeholder="Laisser vide pour ne pas changer"
-                />
+                >
+                  <option value="superviseur">Superviseur</option>
+                  <option value="Responsable">Responsable</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              {editGestionnaire.role === 'superviseur' ? (
+                <div className="form-group">
+                  <label>Siège</label>
+                  <input
+                    type="text"
+                    name="siege"
+                    value={editGestionnaire.siege}
+                    onChange={handleEditChange}
+                    placeholder="Ex: Alger, Oran..."
+                  />
+                </div>
+              ) : (
+                <div className="form-group"></div>
+              )}
+              <div className="form-group">
+                <label>Nouveau mot de passe</label>
+                <div className="password-input-wrapper">
+                  <input
+                    type="password"
+                    name="password"
+                    value={editGestionnaire.password}
+                    onChange={handleEditChange}
+                    placeholder="Laisser vide pour ne pas changer"
+                  />
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -452,4 +493,4 @@ const Liste_des_Gestionnaires = () => {
   );
 };
 
-export default Liste_des_Gestionnaires;
+export default GestionnairesPage;

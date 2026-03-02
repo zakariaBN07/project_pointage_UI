@@ -1,8 +1,8 @@
 import React from 'react';
 import './Admin.css';
-import Statistics from './Statistic/Statistics';
+import Statistics from './StatisticsPage';
 
-const Admin = () => {
+const AdminPage = () => {
   return (
     <div className="admin-view">
       <Statistics />
@@ -10,4 +10,5 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default AdminPage;
+

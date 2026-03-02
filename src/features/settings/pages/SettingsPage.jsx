@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import Historique from './Historique/Historique';
-import './Parametre.css';
+import Historique from '../components/History/Historique';
+import './Settings.css';
 
-const Parametre = () => {
+const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('historique');
 
   return (
@@ -14,7 +14,7 @@ const Parametre = () => {
             className={`parametre-nav-item ${activeTab === 'historique' ? 'active' : ''}`}
             onClick={() => setActiveTab('historique')}
           >
-            <span>📜</span> 
+            <span>📜</span>
             <span>Historique</span>
           </button>
         </nav>
@@ -27,4 +27,4 @@ const Parametre = () => {
   );
 };
 
-export default Parametre;
+export default SettingsPage;
