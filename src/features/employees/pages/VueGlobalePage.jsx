@@ -134,7 +134,6 @@ const VueGlobalePage = () => {
     }
     return null;
   };
-
   const filteredPointage = useMemo(() => {
     return allPointage.filter(row => {
       if (filterSupervisors.length > 0 && !filterSupervisors.includes(row.supervisorName)) return false;
@@ -158,15 +157,60 @@ const VueGlobalePage = () => {
     });
   }, [allPointage, filterSupervisors, filterEntreeFrom, filterEntreeTo, filterSortieFrom, filterSortieTo, filterStatus, filterSiteWorkshop, filterMinHours, filterMinDays]);
 
+  // ─── Grouping and Metrics ───────────────────────────────────────────────
+  const groupedPointage = useMemo(() => {
+    const groups = {};
+
+    filteredPointage.forEach(emp => {
+      const groupKey = `${emp.affaireNumero || 'Sans Affaire'}_${emp.supervisorName}`;
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          id: groupKey,
+          affaireNumero: emp.affaireNumero || '-',
+          supervisorName: emp.supervisorName,
+          totalHours: 0,
+          totalAbsences: 0,
+          totalSundayHours: 0,
+          presentCount: 0,
+          projectProgress: emp.projectProgress || 0,
+          employees: []
+        };
+      }
+
+      groups[groupKey].employees.push(emp);
+      // Use the max progress found for the project (or assume it's synced)
+      if ((emp.projectProgress || 0) > groups[groupKey].projectProgress) {
+        groups[groupKey].projectProgress = emp.projectProgress;
+      }
+      groups[groupKey].totalHours += (emp.totHrsTravaillees || 0);
+      groups[groupKey].totalAbsences += (emp.nbrJrsAbsence || 0);
+      groups[groupKey].totalSundayHours += (emp.totHrsDimanche || 0);
+      if (emp.status === 'Présent' || emp.status === 'Sortie') {
+        groups[groupKey].presentCount += 1;
+      }
+    });
+
+    return Object.values(groups).map(group => ({
+      ...group,
+      presenceRate: group.employees.length > 0
+        ? Math.round((group.presentCount / group.employees.length) * 100)
+        : 0
+    }));
+  }, [filteredPointage]);
+
+  const [expandedId, setExpandedId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => { setCurrentPage(1); }, [filterSupervisors, filterEntreeFrom, filterEntreeTo, filterSortieFrom, filterSortieTo, filterStatus, filterSiteWorkshop, filterMinHours, filterMinDays]);
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedId(null);
+  }, [filterSupervisors, filterEntreeFrom, filterEntreeTo, filterSortieFrom, filterSortieTo, filterStatus, filterSiteWorkshop, filterMinHours, filterMinDays]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredPointage.length / pageSize));
-  const paginatedPointage = useMemo(
-    () => filteredPointage.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [filteredPointage, currentPage, pageSize]
+  const totalPages = Math.ceil(groupedPointage.length / pageSize);
+  const paginatedGroups = useMemo(
+    () => groupedPointage.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [groupedPointage, currentPage, pageSize]
   );
 
   const getPageNumbers = () => {
@@ -180,6 +224,10 @@ const VueGlobalePage = () => {
     if (right < totalPages - 1) pages.push('...');
     if (totalPages > 1) pages.push(totalPages);
     return pages;
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedId(prev => prev === id ? null : id);
   };
 
   const toggleSupervisor = (name) => {
@@ -389,86 +437,139 @@ const VueGlobalePage = () => {
             ⏳ Chargement des données de pointage...
           </div>
         ) : (
-          <>
-            <p className="table-scroll-hint">⇐ Faites défiler horizontalement pour voir toutes les colonnes ⇒</p>
-            <div className="table-responsive">
-              <table className="gestionnaires-table pointage-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '130px' }}>Superviseur</th>
-                    <th style={{ width: '160px' }}>Nom complet</th>
-                    <th style={{ width: '100px' }}>Matricule</th>
-                    <th style={{ width: '90px' }}>Affaire N°</th>
-                    <th style={{ width: '100px' }}>Client</th>
-                    <th style={{ width: '90px' }}>Site</th>
-                    <th style={{ width: '110px' }}>Chantier/Atelier</th>
-                    {/* <th style={{ width: '100px' }}>Pointage d'entrée</th>
-                    <th style={{ width: '100px' }}>Pointage de sortie</th>
-                    <th style={{ width: '90px' }}>Statut</th> */}
-                    <th style={{ width: '80px' }}>Tot.Hrs trav.</th>
-                    <th style={{ width: '75px' }}>Jrs trav.</th>
-                    <th style={{ width: '75px' }}>Jrs Abs.</th>
-                    <th style={{ width: '75px' }}>Hrs Dim.</th>
-                    <th style={{ width: '75px' }}>Jrs Fériés</th>
-                    <th style={{ width: '85px' }}>Fériés Trav.</th>
-                    <th style={{ width: '75px' }}>Congés</th>
-                    <th style={{ width: '90px' }}>Dpl. Maroc</th>
-                    <th style={{ width: '75px' }}>Paniers</th>
-                    <th style={{ width: '75px' }}>Détente</th>
-                    <th style={{ width: '90px' }}>Dpl. Expat.</th>
-                    <th style={{ width: '80px' }}>Récup.</th>
-                    <th style={{ width: '75px' }}>Maladie</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedPointage.length === 0 ? (
-                    <tr>
-                      <td colSpan={23} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                        {allPointage.length === 0
-                          ? 'Aucune donnée de pointage disponible.'
-                          : 'Aucun enregistrement ne correspond aux filtres sélectionnés.'}
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedPointage.map(row => (
-                      <tr key={row.id}>
-                        <td><span className="supervisor-name-cell">{row.supervisorName}</span></td>
-                        <td style={{ fontWeight: 600, transition: 'color 0.2s' }}>{row.name}</td>
-                        <td><code className="matricule-code">{row.matricule}</code></td>
-                        <td>{row.affaireNumero}</td>
-                        <td>{row.client}</td>
-                        <td>{row.site}</td>
-                        <td>{row.chantierAtelier}</td>
-                        {/* <td>{row.pointageEntree}</td>
-                        <td>{row.pointageSortie}</td>
-                        <td>
-                          <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
-                            row.status === 'Absent' ? 'badge-danger' :
-                              row.status === 'Sortie' ? 'badge-warning' :
-                                'badge-info'
-                            }`}>
-                            {row.status}
-                          </span>
-                        </td> */}
-                        <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
-                        <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
-                        <td>{formatDays(row.nbrJrsAbsence)}</td>
-                        <td style={{ color: '#4f46e5' }}>{formatHours(row.totHrsDimanche)}</td>
-                        <td>{formatDays(row.nbrJrsFeries)}</td>
-                        <td>{formatDays(row.nbrJrsFeriesTravailes)}</td>
-                        <td>{formatDays(row.nbrJrsConges)}</td>
-                        <td>{formatDays(row.nbrJrsDeplacementsMaroc)}</td>
-                        <td>{formatDays(row.nbrJrsPaniers)}</td>
-                        <td>{formatDays(row.nbrJrsDetente)}</td>
-                        <td>{formatDays(row.nbrJrsDeplacementsExpatrie)}</td>
-                        <td>{formatDays(row.nbrJrsRecuperation)}</td>
-                        <td>{formatDays(row.nbrJrsMaladie)}</td>
-                      </tr>
-                    ))
+          <div className="grouped-pointage-list">
+            {paginatedGroups.length === 0 ? (
+              <div className="empty-state">
+                {allPointage.length === 0
+                  ? 'Aucune donnée de pointage disponible.'
+                  : 'Aucun enregistrement ne correspond aux filtres sélectionnés.'}
+              </div>
+            ) : (
+              paginatedGroups.map(group => (
+                <div
+                  key={group.id}
+                  className={`group-container ${expandedId === group.id ? 'expanded' : ''}`}
+                >
+                  <div
+                    className="group-summary-row"
+                    onClick={() => toggleExpand(group.id)}
+                  >
+                    <div className="group-info">
+                      <div className="project-badge">#{group.affaireNumero}</div>
+                      <div className="supervisor-info">
+                        <span className="label">Superviseur</span>
+                        <span className="name">{group.supervisorName}</span>
+                      </div>
+                    </div>
+
+                    <div className="project-progress-container">
+                      <div className="progress-header">
+                        <span className="label">Avancement Projet</span>
+                        <span className="value">{group.projectProgress}%</span>
+                      </div>
+                      <div className="progress-track">
+                        <div
+                          className="progress-fill"
+                          style={{
+                            width: `${group.projectProgress}%`,
+                            background: group.projectProgress > 70 ? '#10b981' : group.projectProgress > 30 ? '#3b82f6' : '#f59e0b'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="group-stats">
+                      <div className="stat-pill">
+                        <span className="stat-label">Hrs Totales</span>
+                        <span className="stat-value">{formatHours(group.totalHours)}</span>
+                      </div>
+                      <div className="stat-pill">
+                        <span className="stat-label">Absences</span>
+                        <span className="stat-value">{group.totalAbsences} jrs</span>
+                      </div>
+                      <div className="stat-pill">
+                        <span className="stat-label">Taux Présence</span>
+                        <span className={`stat-value ${group.presenceRate > 80 ? 'good' : group.presenceRate > 50 ? 'avg' : 'low'}`}>
+                          {group.presenceRate}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="expand-icon">
+                      {expandedId === group.id ? '−' : '+'}
+                    </div>
+                  </div>
+
+                  {expandedId === group.id && (
+                    <div className="group-details-section animate-slide-down">
+                      <div className="details-kpi-grid">
+                        <div className="kpi-card">
+                          <span className="kpi-label">Effectif</span>
+                          <span className="kpi-value">{group.employees.length}</span>
+                        </div>
+                        <div className="kpi-card">
+                          <span className="kpi-label">Hrs Dimanche</span>
+                          <span className="kpi-value">{formatHours(group.totalSundayHours)}</span>
+                        </div>
+                        <div className="kpi-card">
+                          <span className="kpi-label">Présents</span>
+                          <span className="kpi-value">{group.presentCount}</span>
+                        </div>
+                        <div className="kpi-card">
+                          <span className="kpi-label">Moyenne / Emp</span>
+                          <span className="kpi-value">{formatHours(group.totalHours / group.employees.length)}</span>
+                        </div>
+                      </div>
+
+                      <div className="table-responsive detail-table-wrapper">
+                        <table className="gestionnaires-table pointage-table detail-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '160px' }}>Nom complet</th>
+                              <th style={{ width: '100px' }}>Matricule</th>
+                              <th style={{ width: '100px' }}>Site</th>
+                              <th style={{ width: '110px' }}>Chantier</th>
+                              <th style={{ width: '80px' }}>Hrs</th>
+                              <th style={{ width: '75px' }}>Jrs</th>
+                              <th style={{ width: '75px' }}>Abs.</th>
+                              <th style={{ width: '75px' }}>Dim.</th>
+                              <th style={{ width: '75px' }}>Fériés</th>
+                              <th style={{ width: '90px' }}>Dpl. Maroc</th>
+                              <th style={{ width: '90px' }}>Statut</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.employees.map(row => (
+                              <tr key={row.id}>
+                                <td style={{ fontWeight: 600 }}>{row.name}</td>
+                                <td><code className="matricule-code">{row.matricule}</code></td>
+                                <td>{row.site}</td>
+                                <td>{row.chantierAtelier}</td>
+                                <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
+                                <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
+                                <td>{formatDays(row.nbrJrsAbsence)}</td>
+                                <td style={{ color: '#4f46e5' }}>{formatHours(row.totHrsDimanche)}</td>
+                                <td>{formatDays(row.nbrJrsFeries)}</td>
+                                <td>{formatDays(row.nbrJrsDeplacementsMaroc)}</td>
+                                <td>
+                                  <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
+                                    row.status === 'Absent' ? 'badge-danger' :
+                                      row.status === 'Sortie' ? 'badge-warning' :
+                                        'badge-info'
+                                    }`}>
+                                    {row.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              ))
+            )}
 
             {totalPages > 1 && (
               <div className="pagination">
@@ -499,7 +600,7 @@ const VueGlobalePage = () => {
                 </button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

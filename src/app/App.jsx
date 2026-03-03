@@ -10,7 +10,8 @@ import NotificationPanel from '../features/notifications/components/Notification
 import SettingsPage from '../features/settings/pages/SettingsPage'
 import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
 import VueGlobalePage from '../features/employees/pages/VueGlobalePage'
-import { MdHome, MdPeople, MdEventNote, MdSettings } from "react-icons/md";
+import ProjectManagementPage from '../features/projects/pages/ProjectManagementPage'
+import { MdHome, MdPeople, MdEventNote, MdSettings, MdAssignment } from "react-icons/md";
 
 
 function App() {
@@ -70,6 +71,16 @@ function App() {
             <span>Tableau de bord</span>
           </div>
 
+          {/* Projects - Available for all roles */}
+          <div
+            className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('projects')}
+            style={{ cursor: 'pointer' }}
+          >
+            <MdAssignment size={20} />
+            <span>Projets</span>
+          </div>
+
           {user.role === 'admin' && (
             <>
               <div
@@ -120,7 +131,9 @@ function App() {
         </header>
 
         <main className="content-body">
-          {currentPage === 'parametre' && user.role === 'admin' ? (
+          {currentPage === 'projects' ? (
+            <ProjectManagementPage user={user} />
+          ) : currentPage === 'parametre' && user.role === 'admin' ? (
             <SettingsPage />
           ) : currentPage === 'lists' && user.role === 'admin' ? (
             <GestionnairesPage />

@@ -187,6 +187,10 @@ const ResponsablePage = ({ user }) => {
           fetchEmployeesToSupervise();
           setNewEmployee({
             name: '',
+            matricule: '',
+            role: 'employé',
+            affaireNumero: '',
+            client: '',
             site: '',
             supervisorId: '',
             nbrJrsAbsence: 0,
@@ -200,7 +204,8 @@ const ResponsablePage = ({ user }) => {
             nbrJrsDeplacementsExpatrie: 0,
             nbrJrsRecuperation: 0,
             nbrJrsMaladie: 0,
-            chantierAtelier: ''
+            chantierAtelier: '',
+            projectProgress: 0
           });
         }
       } catch (error) {
@@ -232,6 +237,25 @@ const ResponsablePage = ({ user }) => {
       addNotification("Liste supprimée avec succès.", "success");
     } catch (error) {
       console.error("Erreur suppression liste:", error);
+    }
+  };
+
+  const handleDeleteEmployee = async (id) => {
+    if (window.confirm("Voulez-vous vraiment supprimer cet employé ?")) {
+      try {
+        const response = await fetch(`${API_EMPLOYEE}/employees/${id}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          fetchEmployeesToSupervise();
+          addNotification("Employé supprimé avec succès.", "success");
+        } else {
+          addNotification("Erreur lors de la suppression.", "error");
+        }
+      } catch (error) {
+        console.error("Error deleting employee:", error);
+        addNotification("Erreur de connexion au serveur.", "error");
+      }
     }
   };
 
@@ -340,8 +364,11 @@ const ResponsablePage = ({ user }) => {
       const entreeHours = timeStrToHours(updatedEntree);
       const sortieHours = timeStrToHours(updatedSortie);
 
-      if (entreeHours !== null && sortieHours !== null && sortieHours > entreeHours) {
-        const sessionHours = sortieHours - entreeHours;
+      if (entreeHours !== null && sortieHours !== null) {
+        let sessionHours = sortieHours - entreeHours;
+        if (sessionHours < 0) {
+          sessionHours += 24; // Handle overnight shift
+        }
         updatedTotHrsTravaillees += sessionHours;
         updatedNbrJrsTravaillees += 1;
       }
