@@ -10,7 +10,6 @@ import NotificationPanel from '../features/notifications/components/Notification
 import SettingsPage from '../features/settings/pages/SettingsPage'
 import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
 import VueGlobalePage from '../features/employees/pages/VueGlobalePage'
-import ProjectManagementPage from '../features/projects/pages/ProjectManagementPage'
 import { MdHome, MdPeople, MdEventNote, MdSettings, MdAssignment } from "react-icons/md";
 
 
@@ -72,14 +71,14 @@ function App() {
           </div>
 
           {/* Projects - Available for all roles */}
-          <div
+          {/* <div
             className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
             onClick={() => setCurrentPage('projects')}
             style={{ cursor: 'pointer' }}
           >
             <MdAssignment size={20} />
             <span>Projets</span>
-          </div>
+          </div> */}
 
           {user.role === 'admin' && (
             <>

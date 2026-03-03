@@ -522,19 +522,29 @@ const VueGlobalePage = () => {
                       </div>
 
                       <div className="table-responsive detail-table-wrapper">
-                        <table className="gestionnaires-table pointage-table detail-table">
+                        <table className="gestionnaires-table pointage-table detail-table" style={{ minWidth: '1800px' }}>
                           <thead>
                             <tr>
                               <th style={{ width: '160px' }}>Nom complet</th>
                               <th style={{ width: '100px' }}>Matricule</th>
+                              <th style={{ width: '120px' }}>Client</th>
                               <th style={{ width: '100px' }}>Site</th>
                               <th style={{ width: '110px' }}>Chantier</th>
+                              <th style={{ width: '90px' }}>Entrée</th>
+                              <th style={{ width: '90px' }}>Sortie</th>
                               <th style={{ width: '80px' }}>Hrs</th>
                               <th style={{ width: '75px' }}>Jrs</th>
                               <th style={{ width: '75px' }}>Abs.</th>
                               <th style={{ width: '75px' }}>Dim.</th>
                               <th style={{ width: '75px' }}>Fériés</th>
+                              <th style={{ width: '75px' }}>Fériés Trav.</th>
+                              <th style={{ width: '75px' }}>Congés</th>
                               <th style={{ width: '90px' }}>Dpl. Maroc</th>
+                              <th style={{ width: '90px' }}>Dpl. Expat</th>
+                              <th style={{ width: '75px' }}>Paniers</th>
+                              <th style={{ width: '75px' }}>Détente</th>
+                              <th style={{ width: '75px' }}>Récup.</th>
+                              <th style={{ width: '75px' }}>Maladie</th>
                               <th style={{ width: '90px' }}>Statut</th>
                             </tr>
                           </thead>
@@ -543,14 +553,24 @@ const VueGlobalePage = () => {
                               <tr key={row.id}>
                                 <td style={{ fontWeight: 600 }}>{row.name}</td>
                                 <td><code className="matricule-code">{row.matricule}</code></td>
+                                <td>{row.client || '-'}</td>
                                 <td>{row.site}</td>
-                                <td>{row.chantierAtelier}</td>
+                                <td>{row.chantierAtelier || '-'}</td>
+                                <td><span className="time-cell">{row.pointageEntree || '-'}</span></td>
+                                <td><span className="time-cell">{row.pointageSortie || '-'}</span></td>
                                 <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
                                 <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
                                 <td>{formatDays(row.nbrJrsAbsence)}</td>
                                 <td style={{ color: '#4f46e5' }}>{formatHours(row.totHrsDimanche)}</td>
                                 <td>{formatDays(row.nbrJrsFeries)}</td>
+                                <td>{formatDays(row.nbrJrsFeriesTravailes)}</td>
+                                <td>{formatDays(row.nbrJrsConges)}</td>
                                 <td>{formatDays(row.nbrJrsDeplacementsMaroc)}</td>
+                                <td>{formatDays(row.nbrJrsDeplacementsExpatrie)}</td>
+                                <td>{formatDays(row.nbrJrsPaniers)}</td>
+                                <td>{formatDays(row.nbrJrsDetente)}</td>
+                                <td>{formatDays(row.nbrJrsRecuperation)}</td>
+                                <td>{formatDays(row.nbrJrsMaladie)}</td>
                                 <td>
                                   <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
                                     row.status === 'Absent' ? 'badge-danger' :
