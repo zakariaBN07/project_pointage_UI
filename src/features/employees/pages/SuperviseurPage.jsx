@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { NotificationContext } from '../../notifications/NotificationContext';
 import {
@@ -34,6 +34,7 @@ const SuperviseurPage = ({ user }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [activeActivityModal, setActiveActivityModal] = useState(null);
+  const [editingProgress, setEditingProgress] = useState(null);
 
   const fetchReports = async () => {
     try {
@@ -163,6 +164,30 @@ const SuperviseurPage = ({ user }) => {
     }
   };
 
+  const handleUpdateProgress = async (empId, progress) => {
+    try {
+      const emp = reports.find(e => e.id === empId);
+      const response = await fetch(`${API_EMPLOYEE}/employees/${empId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...emp, projectProgress: parseInt(progress, 10) })
+      });
+
+      if (response.ok) {
+        addNotification("Progression mise à jour avec succès", "success");
+        fetchReports();
+        if (activeActivityModal && activeActivityModal.id === empId) {
+          setActiveActivityModal(prev => ({ ...prev, projectProgress: parseInt(progress, 10) }));
+        }
+      } else {
+        addNotification("Erreur lors de la mise à jour de la progression", "error");
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      addNotification("Erreur serveur", "error");
+    }
+  };
+
   const handleDeleteAll = async () => {
     if (reports.length === 0) return;
 
@@ -185,9 +210,28 @@ const SuperviseurPage = ({ user }) => {
     }
   };
 
+  const projectStats = useMemo(() => {
+    const groups = {};
+    reports.forEach(emp => {
+      const key = emp.affaireNumero || 'Sans Affaire';
+      if (!groups[key]) {
+        groups[key] = {
+          name: key,
+          progress: emp.projectProgress || 0,
+          employeeCount: 0,
+          presentCount: 0
+        };
+      }
+      groups[key].employeeCount++;
+      if (emp.status === 'Présent' || emp.status === 'Sortie') groups[key].presentCount++;
+      if ((emp.projectProgress || 0) > groups[key].progress) groups[key].progress = emp.projectProgress;
+    });
+    return Object.values(groups);
+  }, [reports]);
+
   const stats = {
     total: reports.length,
-    present: reports.filter(r => r.status === 'Présent').length,
+    present: reports.filter(r => r.status === 'Présent' || r.status === 'Sortie').length,
     absent: reports.filter(r => r.status === 'Absent').length
   };
 
@@ -226,6 +270,70 @@ const SuperviseurPage = ({ user }) => {
     <div className="superviseur-container">
       <div className="view-header">
         <h1>Espace Superviseur</h1>
+      </div>
+
+      <div className="superviseur-stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon blue"><FaUsers /></div>
+          <div className="stat-content">
+            <span className="stat-label">Total Employés</span>
+            <span className="stat-value">{stats.total}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon green"><FaUserCheck /></div>
+          <div className="stat-content">
+            <span className="stat-label">Présents</span>
+            <span className="stat-value">{stats.present}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon red"><FaUserTimes /></div>
+          <div className="stat-content">
+            <span className="stat-label">Absents</span>
+            <span className="stat-value">{stats.absent}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="projects-summary-section">
+        <div className="section-title">
+          <h2><FaHardHat style={{ marginRight: '10px' }} /> Mes Projets & Avancement</h2>
+        </div>
+        <div className="projects-grid">
+          {projectStats.length === 0 ? (
+            <div className="empty-projects">Aucun projet actif.</div>
+          ) : (
+            projectStats.map(project => (
+              <div key={project.name} className="project-summary-card">
+                <div className="project-header">
+                  <span className="project-name">Projet #{project.name}</span>
+                  <span className="project-badge">{project.employeeCount} employés</span>
+                </div>
+                <div className="project-progress-area">
+                  <div className="progress-info">
+                    <span>Avancement</span>
+                    <span className="progress-val">{project.progress}%</span>
+                  </div>
+                  <div className="progress-bar-bg">
+                    <div
+                      className="progress-bar-fill"
+                      style={{
+                        width: `${project.progress}%`,
+                        background: project.progress > 70 ? '#10b981' : project.progress > 30 ? '#4f46e5' : '#f59e0b'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="project-footer">
+                  <span className="presence-info">
+                    <strong>{project.presentCount}</strong> présents aujourd'hui
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="card">
@@ -450,6 +558,43 @@ const SuperviseurPage = ({ user }) => {
                   <div className="num-field">
                     <label>Jrs Détente</label>
                     <input type="number" value={activeActivityModal.nbrJrsDetente || 0} readOnly disabled />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4 style={{ color: '#4f46e5' }}><FaSync /> Avancement Projet (%)</h4>
+                <div className="activity-fields">
+                  <div className="num-field" style={{ flex: '1' }}>
+                    <label>Progression Actuelle</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        defaultValue={activeActivityModal.projectProgress || 0}
+                        onChange={(e) => setEditingProgress(e.target.value)}
+                        style={{ borderColor: '#818cf8', fontWeight: 'bold' }}
+                      />
+                      <button
+                        className="save-btn-small"
+                        onClick={() => handleUpdateProgress(activeActivityModal.id, editingProgress || activeActivityModal.projectProgress || 0)}
+                        style={{
+                          padding: '0.6rem 1rem',
+                          background: '#4f46e5',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <FaSave /> Enregistrer
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
