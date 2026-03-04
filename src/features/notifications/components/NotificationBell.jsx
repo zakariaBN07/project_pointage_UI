@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NotificationContext } from '../NotificationContext';
 import './Notification.css';
 import { FaBell, FaRegBell } from "react-icons/fa";
@@ -100,8 +101,8 @@ const NotificationPanel = ({ user }) => {
         )}
       </button>
 
-      {isOpen && (
-        <div className="notification-modal-overlay">
+      {isOpen && createPortal(
+        <div className="notification-modal-overlay" role="dialog" aria-modal="true">
           <div className="notification-modal">
             <div className="notification-modal-header">
               <h2>📬 Notifications</h2>
@@ -174,104 +175,68 @@ const NotificationPanel = ({ user }) => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {selectedNotification && selectedNotification.data && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 11000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            maxWidth: '90vw',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            padding: '2rem',
-            position: 'relative'
-          }}>
-            <button
-              onClick={() => setSelectedNotification(null)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '1.5rem',
-                cursor: 'pointer'
-              }}
-            >
-              ✕
-            </button>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '2rem' }}>
-              <div>
-                <h2 style={{ marginTop: 0, marginBottom: '0.25rem' }}>📊 Détail de l'Exportation</h2>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>{selectedNotification.message}</p>
+      {selectedNotification && selectedNotification.data && createPortal(
+        <div className="notification-detail-overlay" onClick={() => setSelectedNotification(null)} role="dialog" aria-modal="true">
+          <div className="notification-detail-modal" onClick={e => e.stopPropagation()}>
+            <div className="detail-modal-header">
+              <div className="detail-modal-header-info">
+                <h2>📊 Détail de l'Exportation</h2>
+                <p>{selectedNotification.message}</p>
               </div>
+              <button
+                className="detail-modal-close"
+                onClick={() => setSelectedNotification(null)}
+                title="Fermer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="detail-modal-content">
+              <div className="detail-table-container">
+                <table className="detail-table">
+                  <thead>
+                    <tr>
+                      {selectedNotification.data.length > 0 && Object.keys(selectedNotification.data[0]).map((key) => (
+                        <th key={key}>{key}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedNotification.data.map((row, index) => (
+                      <tr key={index}>
+                        {Object.values(row).map((value, i) => (
+                          <td key={i}>{value}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="detail-modal-footer">
+              <span className="detail-total-count">
+                Total: {selectedNotification.data.length} employé(s)
+              </span>
 
               {user?.role === 'superviseur' && (
                 <button
+                  className="transmit-btn"
                   onClick={handleUploadToAdmin}
                   disabled={isUploading}
-                  style={{
-                    backgroundColor: isUploading ? '#cbd5e1' : '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.6rem 1.2rem',
-                    borderRadius: '8px',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: isUploading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                    transition: 'all 0.2s'
-                  }}
                 >
                   {isUploading ? '⏳ Transmission...' : '📤 Transmettre à l\'Admin'}
                 </button>
               )}
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '0.9rem'
-              }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-                    {selectedNotification.data.length > 0 && Object.keys(selectedNotification.data[0]).map((key) => (
-                      <th key={key} style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>{key}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedNotification.data.map((row, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      {Object.values(row).map((value, i) => (
-                        <td key={i} style={{ padding: '0.75rem' }}>{value}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p style={{ marginTop: '1rem', color: '#999', textAlign: 'right' }}>
-              Total: {selectedNotification.data.length} employé(s)
-            </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

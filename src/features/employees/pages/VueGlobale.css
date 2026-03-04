@@ -19,11 +19,11 @@
   --success-50: #f0fdf4;
   --success-500: #22c55e;
   --success-700: #15803d;
-  
+
   --warning-50: #fffbeb;
   --warning-500: #f59e0b;
   --warning-700: #b45309;
-  
+
   --danger-50: #fef2f2;
   --danger-500: #ef4444;
   --danger-700: #b91c1c;
@@ -44,7 +44,7 @@
   --bg-primary: var(--gray-50);
   --bg-secondary: #ffffff;
   --bg-tertiary: var(--gray-100);
-  
+
   --text-primary: var(--gray-900);
   --text-secondary: var(--gray-600);
   --text-tertiary: var(--gray-400);
@@ -52,7 +52,7 @@
 
   --border-light: var(--gray-200);
   --border-medium: var(--gray-300);
-  
+
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -83,11 +83,11 @@
     --bg-primary: var(--gray-900);
     --bg-secondary: var(--gray-800);
     --bg-tertiary: var(--gray-700);
-    
+
     --text-primary: var(--gray-50);
     --text-secondary: var(--gray-300);
     --text-tertiary: var(--gray-400);
-    
+
     --border-light: var(--gray-700);
     --border-medium: var(--gray-600);
   }
@@ -263,6 +263,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -355,12 +356,24 @@
 
 .table-responsive {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-light);
-  border-radius: 16px;
-  box-shadow: var(--shadow-md);
-  transition: var(--transition-base);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  background: white;
+  margin-bottom: var(--space-base);
+  position: relative;
+}
+
+/* Ensure the wrapper doesn't shrink on small screens */
+.detail-table-wrapper {
+  margin: var(--space-lg) 0;
+  border: 1px solid var(--border-light);
+  background: white;
+  overflow-x: auto;
 }
 
 .table-responsive:hover {
@@ -369,23 +382,22 @@
 
 /* Custom scrollbar */
 .table-responsive::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 12px;
 }
 
 .table-responsive::-webkit-scrollbar-track {
-  background: var(--gray-100);
-  border-radius: 8px;
+  background: #f1f5f9;
+  border-radius: 10px;
 }
 
 .table-responsive::-webkit-scrollbar-thumb {
-  background: var(--gray-400);
-  border-radius: 8px;
-  transition: var(--transition-fast);
+  background: #cbd5e1;
+  border-radius: 10px;
+  border: 3px solid #f1f5f9;
 }
 
 .table-responsive::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-500);
+  background: #94a3b8;
 }
 
 .table-scroll-hint {
@@ -398,8 +410,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -410,7 +429,7 @@
 
 /* Table base */
 .gestionnaires-table.pointage-table {
-  min-width: 1600px;
+  min-width: 1800px;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -490,6 +509,21 @@
   transition: var(--transition-fast);
 }
 
+/* Group details section (expanded) */
+.group-details-section {
+  padding: var(--space-xl);
+  background: var(--gray-50);
+  border-top: 1px solid var(--border-light);
+  animation: slideDown var(--transition-base);
+}
+
+.details-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-base);
+  margin-bottom: var(--space-xl);
+}
+
 /* Sticky body cells */
 .gestionnaires-table.pointage-table tbody td:nth-child(1),
 .gestionnaires-table.pointage-table tbody td:nth-child(2) {
@@ -500,15 +534,15 @@
 
 .gestionnaires-table.pointage-table tbody td:nth-child(1) {
   left: 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
   min-width: 140px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .gestionnaires-table.pointage-table tbody td:nth-child(2) {
   left: 140px;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
-  min-width: 180px;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.03);
+  min-width: 100px;
   font-weight: 600;
   color: var(--primary-700);
 }
@@ -922,7 +956,8 @@
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--bg-secondary);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: var(--shadow-sm);
 }
 
@@ -1015,6 +1050,7 @@
 }
 
 @media (max-width: 768px) {
+
   .filter-group,
   .filter-group-time {
     min-width: 100%;
@@ -1104,6 +1140,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
