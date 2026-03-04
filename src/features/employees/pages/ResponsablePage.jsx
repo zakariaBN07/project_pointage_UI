@@ -139,15 +139,21 @@ const ResponsablePage = ({ user }) => {
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
       if (response.ok) {
-        const rawData = await response.json();
-        // Initialize with default status if not present and remove sensitive data
-        const initializedData = rawData.map(({ password, ...emp }) => ({
-          ...emp,
-          pointageEntree: emp.pointageEntree || '-',
-          pointageSortie: emp.pointageSortie || '-',
-          status: emp.status || 'En attente'
-        }));
-        setEmployeesPointage(initializedData);
+          const rawData = await response.json();
+          // Initialize with default status if not present and remove sensitive data
+          const initializedData = rawData.map(({ password, ...emp }) => ({
+            ...emp,
+            pointageEntree: emp.pointageEntree || '-',
+            pointageSortie: emp.pointageSortie || '-',
+            status: emp.status || 'En attente'
+          }));
+          // Filter client-side to ensure only employees for this responsable are shown.
+          // Some backends may not support the ?responsableId= query reliably,
+          // so enforce the restriction locally to avoid showing the full list.
+          const visible = user?.id
+            ? initializedData.filter(emp => String(emp.responsableId) === String(user.id))
+            : initializedData;
+          setEmployeesPointage(visible);
       }
     } catch (error) {
       console.error("Error fetching employees for supervision:", error);

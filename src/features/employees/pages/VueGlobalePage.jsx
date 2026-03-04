@@ -463,11 +463,11 @@ const VueGlobalePage = () => {
                     </div>
 
                     <div className="project-progress-container">
-                      <div className="progress-header">
+                      {/* <div className="progress-header">
                         <span className="label">Avancement Projet</span>
                         <span className="value">{group.projectProgress}%</span>
-                      </div>
-                      <div className="progress-track">
+                      </div> */}
+                      {/* <div className="progress-track">
                         <div
                           className="progress-fill"
                           style={{
@@ -475,7 +475,7 @@ const VueGlobalePage = () => {
                             background: group.projectProgress > 70 ? '#10b981' : group.projectProgress > 30 ? '#3b82f6' : '#f59e0b'
                           }}
                         ></div>
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="group-stats">

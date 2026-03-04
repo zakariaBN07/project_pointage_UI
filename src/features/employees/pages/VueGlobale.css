@@ -743,7 +743,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg) var(--space-xl);
+  /* padding: var(--space-lg) var(--space-xl); */
+  padding: 0.5rem;
   cursor: pointer;
   background: var(--bg-secondary);
   transition: var(--transition-fast);
@@ -764,7 +765,7 @@
 .project-badge {
   background: var(--gray-800);
   color: var(--gray-100);
-  padding: var(--space-sm) var(--space-base);
+  /* padding: var(--space-sm) var(--space-base); */
   border-radius: 8px;
   font-family: var(--font-mono);
   font-weight: 700;
