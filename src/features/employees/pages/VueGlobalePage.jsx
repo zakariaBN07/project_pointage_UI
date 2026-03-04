@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import {
+  FaChevronLeft,
+  FaChevronRight,
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight
+} from 'react-icons/fa';
 import './VueGlobale.css';
 
 const VueGlobalePage = () => {
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
+  const API_PROJECT = import.meta.env.VITE_APP_API_PROJECT_URL || 'http://localhost:8081/api';
   const [gestionnaires, setGestionnaires] = useState([]);
   const [allPointage, setAllPointage] = useState([]);
+  const [projectMetrics, setProjectMetrics] = useState({});
   const [pointageLoading, setPointageLoading] = useState(false);
 
   // ─── Formatting Helpers ───────────────────────────────────────────────
@@ -51,6 +59,22 @@ const VueGlobalePage = () => {
     return [];
   };
 
+  const fetchProjectMetrics = async () => {
+    try {
+      const response = await fetch(`${API_PROJECT}/projects`);
+      if (response.ok) {
+        const data = await response.json();
+        const metricsMap = {};
+        data.forEach(project => {
+          metricsMap[project.affaireNumero] = project;
+        });
+        setProjectMetrics(metricsMap);
+      }
+    } catch (error) {
+      console.error("Error fetching project metrics:", error);
+    }
+  };
+
   const fetchAllPointage = async (gestList) => {
     try {
       setPointageLoading(true);
@@ -69,6 +93,7 @@ const VueGlobalePage = () => {
           })
           .map(emp => ({
             id: emp.id,
+            projectId: emp.projectId,
             // Check both supervisorId and responsableId to find the manager's name
             supervisorName: supervisorMap[emp.supervisorId] || supervisorMap[emp.responsableId] || 'Inconnu',
             name: emp.name,
@@ -106,6 +131,7 @@ const VueGlobalePage = () => {
 
   useEffect(() => {
     fetchGestionnaires().then(data => fetchAllPointage(data));
+    fetchProjectMetrics();
   }, []);
 
   const allSupervisors = useMemo(
@@ -164,6 +190,7 @@ const VueGlobalePage = () => {
     filteredPointage.forEach(emp => {
       const groupKey = `${emp.affaireNumero || 'Sans Affaire'}_${emp.supervisorName}`;
       if (!groups[groupKey]) {
+        const projectMetric = projectMetrics[emp.affaireNumero] || {};
         groups[groupKey] = {
           id: groupKey,
           affaireNumero: emp.affaireNumero || '-',
@@ -172,16 +199,18 @@ const VueGlobalePage = () => {
           totalAbsences: 0,
           totalSundayHours: 0,
           presentCount: 0,
-          projectProgress: emp.projectProgress || 0,
+          // New project metrics fields
+          plannedHours: projectMetric.plannedHours || 0,
+          consumedHours: projectMetric.consumedHours || 0,
+          remainingHours: projectMetric.remainingHours || 0,
+          progressPercent: projectMetric.progressPercent || 0,
+          timePercent: projectMetric.timePercent || 0,
+          timeExceedsProgress: projectMetric.timeExceedsProgress || false,
           employees: []
         };
       }
 
       groups[groupKey].employees.push(emp);
-      // Use the max progress found for the project (or assume it's synced)
-      if ((emp.projectProgress || 0) > groups[groupKey].projectProgress) {
-        groups[groupKey].projectProgress = emp.projectProgress;
-      }
       groups[groupKey].totalHours += (emp.totHrsTravaillees || 0);
       groups[groupKey].totalAbsences += (emp.nbrJrsAbsence || 0);
       groups[groupKey].totalSundayHours += (emp.totHrsDimanche || 0);
@@ -196,11 +225,17 @@ const VueGlobalePage = () => {
         ? Math.round((group.presentCount / group.employees.length) * 100)
         : 0
     }));
-  }, [filteredPointage]);
+  }, [filteredPointage, projectMetrics]);
 
   const [expandedId, setExpandedId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [detailPage, setDetailPage] = useState(1);
+  const detailPageSize = 10;
+
+  useEffect(() => {
+    setDetailPage(1);
+  }, [expandedId]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -208,21 +243,29 @@ const VueGlobalePage = () => {
   }, [filterSupervisors, filterEntreeFrom, filterEntreeTo, filterSortieFrom, filterSortieTo, filterStatus, filterSiteWorkshop, filterMinHours, filterMinDays]);
 
   const totalPages = Math.ceil(groupedPointage.length / pageSize);
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
   const paginatedGroups = useMemo(
-    () => groupedPointage.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [groupedPointage, currentPage, pageSize]
+    () => groupedPointage.slice(indexOfFirstItem, indexOfLastItem),
+    [groupedPointage, indexOfFirstItem, indexOfLastItem]
   );
 
-  const getPageNumbers = () => {
+  const renderPageNumbers = () => {
     const pages = [];
-    const delta = 2;
-    const left = Math.max(2, currentPage - delta);
-    const right = Math.min(totalPages - 1, currentPage + delta);
-    pages.push(1);
-    if (left > 2) pages.push('...');
-    for (let i = left; i <= right; i++) pages.push(i);
-    if (right < totalPages - 1) pages.push('...');
-    if (totalPages > 1) pages.push(totalPages);
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, start + maxVisible - 1);
+
+      if (end === totalPages) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
     return pages;
   };
 
@@ -412,9 +455,6 @@ const VueGlobalePage = () => {
         <div className="filter-summary">
           <span>
             {filteredPointage.length} enregistrement{filteredPointage.length !== 1 ? 's' : ''}
-            {filteredPointage.length > 0 && (
-              <> — page {currentPage}/{totalPages}</>
-            )}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {(filterSupervisors.length > 0 || filterEntreeFrom || filterEntreeTo || filterSortieFrom || filterSortieTo || filterStatus || filterSiteWorkshop || filterMinHours || filterMinDays) && (
@@ -463,19 +503,65 @@ const VueGlobalePage = () => {
                     </div>
 
                     <div className="project-progress-container">
-                      {/* <div className="progress-header">
-                        <span className="label">Avancement Projet</span>
-                        <span className="value">{group.projectProgress}%</span>
-                      </div> */}
-                      {/* <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${group.projectProgress}%`,
-                            background: group.projectProgress > 70 ? '#10b981' : group.projectProgress > 30 ? '#3b82f6' : '#f59e0b'
-                          }}
-                        ></div>
-                      </div> */}
+                      <div className="metrics-grid">
+                        <div className="metric-item">
+                          <span className="metric-label">Planifié</span>
+                          <span className="metric-value">{formatHours(group.plannedHours)}</span>
+                        </div>
+                        <div className="metric-item">
+                          <span className="metric-label">Consommé</span>
+                          <span className="metric-value">{formatHours(group.consumedHours)}</span>
+                        </div>
+                        <div className="metric-item">
+                          <span className="metric-label">Restant</span>
+                          <span className="metric-value">{formatHours(group.remainingHours)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="progress-section">
+                        <div className="progress-header">
+                          <span className="progress-label">
+                            Avancement
+                            {group.timeExceedsProgress && <span className="alert-badge">Retard</span>}
+                          </span>
+                          <span className="progress-value">{Number(group.progressPercent).toFixed(0)}%</span>
+                        </div>
+                        <div className="progress-bar-container">
+                          <div
+                            className="progress-bar-fill"
+                            style={{
+                              width: `${Math.min(Number(group.progressPercent), 100)}%`,
+                              background: group.timeExceedsProgress 
+                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' 
+                                : 'linear-gradient(90deg, #22c55e, #4ade80)'
+                            }}
+                          >
+                            {Number(group.progressPercent).toFixed(0)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="progress-section">
+                        <div className="progress-header">
+                          <span className="progress-label">Temps Consommé</span>
+                          <span className={`time-percentage ${group.timeExceedsProgress ? 'behind' : 'on-track'}`}>
+                            {Number(group.timePercent).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="progress-bar-container">
+                          <div
+                            className="progress-bar-fill"
+                            style={{
+                              width: `${Math.min(Number(group.timePercent), 100)}%`,
+                              background: group.timeExceedsProgress 
+                                ? 'linear-gradient(90deg, #ef4444, #f87171)' 
+                                : 'linear-gradient(90deg, #0ea5e9, #38bdf8)'
+                            }}
+                          >
+                            {Number(group.timePercent).toFixed(0)}%
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="group-stats">
@@ -549,7 +635,7 @@ const VueGlobalePage = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {group.employees.map(row => (
+                            {group.employees.slice((detailPage - 1) * detailPageSize, detailPage * detailPageSize).map(row => (
                               <tr key={row.id}>
                                 <td style={{ fontWeight: 600 }}>{row.name}</td>
                                 <td><code className="matricule-code">{row.matricule}</code></td>
@@ -585,39 +671,127 @@ const VueGlobalePage = () => {
                           </tbody>
                         </table>
                       </div>
+
+                      {group.employees.length > detailPageSize && (
+                        <div className="pagination detail-pagination">
+                          <div className="pagination-info">
+                            Affichage de <strong>{((detailPage - 1) * detailPageSize) + 1}</strong> à <strong>{Math.min(detailPage * detailPageSize, group.employees.length)}</strong> sur <strong>{group.employees.length}</strong> employés
+                          </div>
+                          <div className="pagination-pills">
+                            <button
+                              onClick={() => setDetailPage(1)}
+                              disabled={detailPage === 1}
+                              className="pagination-pill btn-icon"
+                              title="Première page"
+                            >
+                              <FaAngleDoubleLeft />
+                            </button>
+                            <button
+                              onClick={() => setDetailPage(p => Math.max(1, p - 1))}
+                              disabled={detailPage === 1}
+                              className="pagination-pill btn-icon"
+                              title="Précédent"
+                            >
+                              <FaChevronLeft />
+                            </button>
+                            <div className="pagination-numbers">
+                              {Array.from({ length: Math.ceil(group.employees.length / detailPageSize) }, (_, i) => i + 1)
+                                .filter(n => n === 1 || n === Math.ceil(group.employees.length / detailPageSize) || (n >= detailPage - 2 && n <= detailPage + 2))
+                                .map((n, i, arr) => {
+                                  const elements = [];
+                                  if (i > 0 && n !== arr[i - 1] + 1) {
+                                    elements.push(<span key={`sep-${n}`} className="pagination-ellipsis">…</span>);
+                                  }
+                                  elements.push(
+                                    <button
+                                      key={n}
+                                      onClick={() => setDetailPage(n)}
+                                      className={`pagination-number ${detailPage === n ? 'active' : ''}`}
+                                    >
+                                      {n}
+                                    </button>
+                                  );
+                                  return elements;
+                                })}
+                            </div>
+                            <button
+                              onClick={() => setDetailPage(p => Math.min(Math.ceil(group.employees.length / detailPageSize), p + 1))}
+                              disabled={detailPage === Math.ceil(group.employees.length / detailPageSize)}
+                              className="pagination-pill btn-icon"
+                              title="Suivant"
+                            >
+                              <FaChevronRight />
+                            </button>
+                            <button
+                              onClick={() => setDetailPage(Math.ceil(group.employees.length / detailPageSize))}
+                              disabled={detailPage === Math.ceil(group.employees.length / detailPageSize)}
+                              className="pagination-pill btn-icon"
+                              title="Dernière page"
+                            >
+                              <FaAngleDoubleRight />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               ))
             )}
 
-            {totalPages > 1 && (
+            {groupedPointage.length > 0 && (
               <div className="pagination">
-                <button
-                  className="pagination-btn"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ‹ Préc.
-                </button>
-                {getPageNumbers().map((p, i) =>
-                  p === '...'
-                    ? <span key={`ellipsis-${i}`} className="pagination-ellipsis">…</span>
-                    : <button
-                      key={p}
-                      className={`pagination-btn${currentPage === p ? ' active' : ''}`}
-                      onClick={() => setCurrentPage(p)}
-                    >
-                      {p}
-                    </button>
-                )}
-                <button
-                  className="pagination-btn"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Suiv. ›
-                </button>
+                <div className="pagination-info">
+                  Affichage de <strong>{indexOfFirstItem + 1}</strong> à <strong>{Math.min(indexOfLastItem, groupedPointage.length)}</strong> sur <strong>{groupedPointage.length}</strong> groupes
+                </div>
+
+                <div className="pagination-pills">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="pagination-pill btn-icon"
+                    title="Première page"
+                  >
+                    <FaAngleDoubleLeft />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="pagination-pill btn-icon"
+                    title="Précédent"
+                  >
+                    <FaChevronLeft />
+                  </button>
+
+                  <div className="pagination-numbers">
+                    {renderPageNumbers().map(number => (
+                      <button
+                        key={number}
+                        onClick={() => setCurrentPage(number)}
+                        className={`pagination-number ${currentPage === number ? 'active' : ''}`}
+                      >
+                        {number}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="pagination-pill btn-icon"
+                    title="Suivant"
+                  >
+                    <FaChevronRight />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="pagination-pill btn-icon"
+                    title="Dernière page"
+                  >
+                    <FaAngleDoubleRight />
+                  </button>
+                </div>
               </div>
             )}
           </div>

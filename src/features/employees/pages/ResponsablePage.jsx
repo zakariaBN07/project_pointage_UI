@@ -30,8 +30,10 @@ const ResponsablePage = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
+  const API_PROJECT = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api';
   const [employeesPointage, setEmployeesPointage] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [selectedSupervisorId, setSelectedSupervisorId] = useState('');
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -177,6 +179,7 @@ const ResponsablePage = ({ user }) => {
       }
 
       try {
+        const projectId = getProjectIdByAffaire(newEmployee.affaireNumero);
         const response = await fetch(`${API_EMPLOYEE}/employees`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -184,6 +187,7 @@ const ResponsablePage = ({ user }) => {
             ...newEmployee,
             responsableId: user?.id,
             supervisorId: newEmployee.supervisorId || selectedSupervisorId,
+            projectId: projectId,
             status: 'En attente',
             pointageEntree: '-',
             pointageSortie: '-'
@@ -240,7 +244,7 @@ const ResponsablePage = ({ user }) => {
       );
 
       fetchEmployeesToSupervise();
-      addNotification("Liste supprimée avec succès.", "success");
+      // addNotification("Liste supprimée avec succès.", "success");
     } catch (error) {
       console.error("Erreur suppression liste:", error);
     }
@@ -328,9 +332,30 @@ const ResponsablePage = ({ user }) => {
     }
   };
 
+  // Fetch all projects to link employees by affaireNumero
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch(`${API_PROJECT}/projects`);
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
+  // Helper: find projectId by affaireNumero
+  const getProjectIdByAffaire = (affaireNumero) => {
+    if (!affaireNumero) return null;
+    const project = projects.find(p => String(p.affaireNumero) === String(affaireNumero));
+    return project?.id || null;
+  };
+
   useEffect(() => {
     fetchEmployeesToSupervise();
     fetchSupervisors();
+    fetchProjects();
   }, [user?.id]);
 
   // ─── Helper: parse "HH:MM:SS" → decimal hours ───────────────────────────
@@ -388,13 +413,13 @@ const ResponsablePage = ({ user }) => {
       prev.map(e =>
         e.id === id
           ? {
-            ...e,
-            status: newStatus,
-            pointageEntree: updatedEntree,
-            pointageSortie: updatedSortie,
-            totHrsTravaillees: updatedTotHrsTravaillees,
-            nbrJrsTravaillees: updatedNbrJrsTravaillees,
-          }
+              ...e,
+              status: newStatus,
+              pointageEntree: updatedEntree,
+              pointageSortie: updatedSortie,
+              totHrsTravaillees: updatedTotHrsTravaillees,
+              nbrJrsTravaillees: updatedNbrJrsTravaillees,
+            }
           : e
       )
     );
@@ -419,6 +444,15 @@ const ResponsablePage = ({ user }) => {
     }
   };
 
+  // mark all supervised employees as present
+  const markAllPresent = () => {
+    supervisedEmployees.forEach(emp => {
+      if (emp.status !== 'Présent') {
+        markStatus(emp.id, 'Présent');
+      }
+    });
+  };
+   
   const handleExportEmployees = () => {
     const dataToExport = supervisedEmployees.map(({ name, matricule, affaireNumero, client, site }) => ({
       'Nom': name,
@@ -499,18 +533,23 @@ const ResponsablePage = ({ user }) => {
         const normalizedName = String(name).trim();
         const normalizedMatricule = matricule ? String(matricule).trim() : '';
 
-        // Prevent duplicates from spreadsheet or already in system
-        const alreadyExists = employeesPointage.some(emp =>
-          emp.name.toLowerCase().trim() === normalizedName.toLowerCase() &&
-          emp.matricule.toLowerCase().trim() === normalizedMatricule.toLowerCase()
-        );
+        // Prevent duplicates within the same supervisor only
+        // (other supervisors may legitimately have the same employee)
+        const existingUnderSupervisor = employeesPointage
+          .filter(emp => String(emp.supervisorId) === String(selectedSupervisorId))
+          .some(emp =>
+            emp.name.toLowerCase().trim() === normalizedName.toLowerCase() &&
+            emp.matricule.toLowerCase().trim() === normalizedMatricule.toLowerCase()
+          );
 
-        if (alreadyExists) {
-          console.warn(`Skipping duplicate: ${normalizedName} (${normalizedMatricule})`);
+        if (existingUnderSupervisor) {
+          console.warn(`Skipping duplicate for this supervisor: ${normalizedName} (${normalizedMatricule})`);
           continue;
         }
 
         try {
+          const normalizedAffaire = String(affaireNumero).trim();
+          const projectId = getProjectIdByAffaire(normalizedAffaire);
           await fetch(`${API_EMPLOYEE}/employees`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -519,11 +558,12 @@ const ResponsablePage = ({ user }) => {
               matricule: normalizedMatricule,
               responsableId: user?.id,
               supervisorId: selectedSupervisorId || '',
+              projectId: projectId,
               role: 'employé',
               status: 'En attente',
               pointageEntree: '-',
               pointageSortie: '-',
-              affaireNumero: String(affaireNumero).trim(),
+              affaireNumero: normalizedAffaire,
               client: String(client).trim(),
               site: String(site).trim()
             }),
@@ -840,6 +880,9 @@ const ResponsablePage = ({ user }) => {
           <div className="table-actions" style={{ display: 'flex', gap: '10px' }}>
             <button onClick={handleExportEmployees} className="btn-icon-label" title="Exporter Liste">
               <FaFileExport /> <span>Liste Excel</span>
+            </button>
+            <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
+              <FaUserCheck /> <span>Tous Présents</span>
             </button>
             {/* <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
               <FaSync /> 

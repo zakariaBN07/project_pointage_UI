@@ -10,6 +10,8 @@ import NotificationPanel from '../features/notifications/components/Notification
 import SettingsPage from '../features/settings/pages/SettingsPage'
 import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
 import VueGlobalePage from '../features/employees/pages/VueGlobalePage'
+import ProjectsListPage from '../features/projects/pages/ProjectsListPage'
+import CreateProjectPage from '../features/projects/pages/CreateProjectPage'
 import { MdHome, MdPeople, MdEventNote, MdSettings, MdAssignment } from "react-icons/md";
 
 
@@ -70,15 +72,17 @@ function App() {
             <span>Tableau de bord</span>
           </div>
 
-          {/* Projects - Available for all roles */}
-          {/* <div
-            className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('projects')}
-            style={{ cursor: 'pointer' }}
-          >
-            <MdAssignment size={20} />
-            <span>Projets</span>
-          </div> */}
+          {/* Projects - Available for Responsable */}
+          {user.role?.toLowerCase() === 'responsable' && (
+            <div
+              className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('projects')}
+              style={{ cursor: 'pointer' }}
+            >
+              <MdAssignment size={20} />
+              <span>Projets</span>
+            </div>
+          )}
 
           {user.role === 'admin' && (
             <>
@@ -130,8 +134,10 @@ function App() {
         </header>
 
         <main className="content-body">
-          {currentPage === 'projects' ? (
-            <ProjectManagementPage user={user} />
+          {currentPage === 'projects' && user.role?.toLowerCase() === 'responsable' ? (
+            <ProjectsListPage setCurrentPage={setCurrentPage} />
+          ) : currentPage === 'create-project' && user.role?.toLowerCase() === 'responsable' ? (
+            <CreateProjectPage setCurrentPage={setCurrentPage} />
           ) : currentPage === 'parametre' && user.role === 'admin' ? (
             <SettingsPage />
           ) : currentPage === 'lists' && user.role === 'admin' ? (
