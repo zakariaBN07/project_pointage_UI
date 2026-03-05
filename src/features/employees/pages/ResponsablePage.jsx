@@ -563,20 +563,13 @@ const ResponsablePage = ({ user }) => {
     });
   };
 
-  const handleExportEmployees = () => {
-    const dataToExport = supervisedEmployees.map(({ name, matricule, affaireNumero, client, site, plannedHours }) => ({
-      'Nom': name,
-      'Matricule': matricule,
-      'Affaire N°': affaireNumero || '-',
-      'Client': client || '-',
-      'Site': site || '-',
-      'Planned Hours': plannedHours || 0
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Employés");
-    XLSX.writeFile(workbook, "List_Employees.xlsx");
-  };
+  // const markAllSortie = () => {
+  //   supervisedEmployees.forEach(emp => {
+  //     if (emp.status !== 'Sortie') {
+  //       markStatus(emp.id, 'Sortie');
+  //     }
+  //   });
+  // };
 
   const handleImportEmployees = (e) => {
     const file = e.target.files[0];
@@ -1008,8 +1001,13 @@ const ResponsablePage = ({ user }) => {
               <span>Heures Planifiées par Projet</span>
               <span className="ppp-badge">{projectKeys.length} projet{projectKeys.length > 1 ? 's' : ''}</span>
             </div>
+
             <p className="ppp-hint">Cliquez sur un projet pour voir ses employés. Définissez les heures planifiées et cliquez <strong>Appliquer</strong>.</p>
           </div>
+
+           <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
+              <FaUserCheck /> <span>Tous Présents</span>
+            </button>
 
           <div className="ppp-rows">
             {projectKeys.map(affaire => {
@@ -1215,8 +1213,6 @@ const ResponsablePage = ({ user }) => {
           </div>
         </section>
       )}
-
-
     </div>
   );
 };

@@ -66,8 +66,6 @@ const NotificationPanel = ({ user }) => {
         }
       }
 
-      alert(`Succès ! ${successCount} pointages ont été transmis à l'Admin.`);
-
       // Notify Admin that the Superviseur has uploaded the data
       addNotification(
         `Superviseur ${user.name} a validé et transmis le rapport de pointage final (${successCount} employé(s)) à la vue globale.`,

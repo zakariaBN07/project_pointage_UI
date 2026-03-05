@@ -200,13 +200,10 @@ const VueGlobalePage = () => {
           totalAbsences: 0,
           totalSundayHours: 0,
           presentCount: 0,
-          // New project metrics fields
-          plannedHours: projectMetric.plannedHours || 0,
-          consumedHours: projectMetric.consumedHours || 0,
-          remainingHours: projectMetric.remainingHours || 0,
-          progressPercent: projectMetric.progressPercent || 0,
-          timePercent: projectMetric.timePercent || 0,
-          timeExceedsProgress: projectMetric.timeExceedsProgress || false,
+          // Physical progress stays from project-level or fallback to employee data
+          progressPercent: projectMetric.progressPercent || emp.projectProgress || 0,
+          // Derive planning from employee data (fresh from Responsable) OR project record
+          plannedHours: emp.plannedHours || projectMetric.plannedHours || 0,
           employees: []
         };
       }
@@ -218,14 +215,33 @@ const VueGlobalePage = () => {
       if (emp.status === 'Présent' || emp.status === 'Sortie') {
         groups[groupKey].presentCount += 1;
       }
+
+      // Keep picking largest planned hours if mixed (shouldn't happen but for robustness)
+      if (emp.plannedHours > groups[groupKey].plannedHours) {
+        groups[groupKey].plannedHours = emp.plannedHours;
+      }
+      // Same for physical progress
+      if (emp.projectProgress > groups[groupKey].progressPercent) {
+        groups[groupKey].progressPercent = emp.projectProgress;
+      }
     });
 
-    return Object.values(groups).map(group => ({
-      ...group,
-      presenceRate: group.employees.length > 0
-        ? Math.round((group.presentCount / group.employees.length) * 100)
-        : 0
-    }));
+    return Object.values(groups).map(group => {
+      const ph = group.plannedHours || 0;
+      const th = group.totalHours || 0;
+      const tp = ph > 0 ? (th / ph) * 100 : 0;
+
+      return {
+        ...group,
+        consumedHours: th,
+        remainingHours: Math.max(0, ph - th),
+        timePercent: tp,
+        presenceRate: group.employees.length > 0
+          ? Math.round((group.presentCount / group.employees.length) * 100)
+          : 0,
+        timeExceedsProgress: tp > (group.progressPercent || 0)
+      };
+    });
   }, [filteredPointage, projectMetrics]);
 
   const [expandedId, setExpandedId] = useState(null);
@@ -634,7 +650,7 @@ const VueGlobalePage = () => {
                               <th style={{ width: '75px' }}>Détente</th>
                               <th style={{ width: '75px' }}>Récup.</th>
                               <th style={{ width: '75px' }}>Maladie</th>
-                              
+
                             </tr>
                           </thead>
                           <tbody>
@@ -647,7 +663,7 @@ const VueGlobalePage = () => {
                                 <td>{row.chantierAtelier || '-'}</td>
                                 <td><span className="time-cell">{row.pointageEntree || '-'}</span></td>
                                 <td><span className="time-cell">{row.pointageSortie || '-'}</span></td>
-                                  <td>
+                                <td>
                                   <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
                                     row.status === 'Absent' ? 'badge-danger' :
                                       row.status === 'Sortie' ? 'badge-warning' :
@@ -674,7 +690,7 @@ const VueGlobalePage = () => {
                                 <td>{formatDays(row.nbrJrsDetente)}</td>
                                 <td>{formatDays(row.nbrJrsRecuperation)}</td>
                                 <td>{formatDays(row.nbrJrsMaladie)}</td>
-                              
+
                               </tr>
                             ))}
                           </tbody>
