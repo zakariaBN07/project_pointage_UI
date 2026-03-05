@@ -154,11 +154,16 @@ const SuperviseurPage = ({ user }) => {
       XLSX.utils.book_append_sheet(workbook, worksheet, "Rapport Journalier");
       XLSX.writeFile(workbook, "Rapport_Journalier.xlsx");
 
+      // Notify ADMIN that data is ready
       addNotification(
-        `${user?.name || 'Un superviseur'} a exporté le rapport journalier (${dataToExport.length} employé(s))`,
+        `Rapport de pointage validé et transmis par le Superviseur ${user.name} (${dataToExport.length} employés).`,
         'success',
-        dataToExport
+        dataToExport,
+        'admin' // Target Admin
       );
+
+      alert("Rapport transmis à l'Admin avec succès.");
+
     } catch (error) {
       console.error("Error exporting reports:", error);
     } finally {
@@ -176,17 +181,16 @@ const SuperviseurPage = ({ user }) => {
       });
 
       if (response.ok) {
-        addNotification("Progression mise à jour avec succès", "success");
         fetchReports();
         if (activeActivityModal && activeActivityModal.id === empId) {
           setActiveActivityModal(prev => ({ ...prev, projectProgress: parseInt(progress, 10) }));
         }
       } else {
-        addNotification("Erreur lors de la mise à jour de la progression", "error");
+        alert("Erreur lors de la mise à jour de la progression");
       }
     } catch (error) {
       console.error("Error updating progress:", error);
-      addNotification("Erreur serveur", "error");
+      alert("Erreur serveur");
     }
   };
 

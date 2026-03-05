@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { NotificationContext } from '../../notifications/NotificationContext';
+import { NotificationContext } from '../../../notifications/NotificationContext';
 import {
   FaUsers,
   FaUserCheck,
@@ -30,7 +30,7 @@ const ResponsablePage = ({ user }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
-  const API_PROJECT = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api';
+  const API_PROJECT = import.meta.env.VITE_APP_API_PROJECTS_URL;
   const [employeesPointage, setEmployeesPointage] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -146,13 +146,9 @@ const ResponsablePage = ({ user }) => {
             : e
         )
       );
-      addNotification(
-        `✔ ${employees.length} employé(s) du projet ${affaireNumero} mis à jour (${hours}h planifiées).`,
-        'success'
-      );
     } catch (err) {
       console.error('applyPlannedHoursToProject error:', err);
-      addNotification('Erreur lors de la mise à jour des heures planifiées.', 'error');
+      alert('Erreur lors de la mise à jour des heures planifiées.');
     } finally {
       setApplyingProject(null);
     }
@@ -282,7 +278,7 @@ const ResponsablePage = ({ user }) => {
       );
 
       if (isDuplicate) {
-        addNotification(`L'employé "${newEmployee.name}" avec le matricule "${newEmployee.matricule}" existe déjà.`, 'warning');
+        alert(`L'employé "${newEmployee.name}" avec le matricule "${newEmployee.matricule}" existe déjà.`);
         return;
       }
 
@@ -353,7 +349,6 @@ const ResponsablePage = ({ user }) => {
       );
 
       fetchEmployeesToSupervise();
-      // addNotification("Liste supprimée avec succès.", "success");
     } catch (error) {
       console.error("Erreur suppression liste:", error);
     }
@@ -367,13 +362,13 @@ const ResponsablePage = ({ user }) => {
         });
         if (response.ok) {
           fetchEmployeesToSupervise();
-          addNotification("Employé supprimé avec succès.", "success");
+          alert("Employé supprimé avec succès.");
         } else {
-          addNotification("Erreur lors de la suppression.", "error");
+          alert("Erreur lors de la suppression.");
         }
       } catch (error) {
         console.error("Error deleting employee:", error);
-        addNotification("Erreur de connexion au serveur.", "error");
+        alert("Erreur de connexion au serveur.");
       }
     }
   };
@@ -445,7 +440,7 @@ const ResponsablePage = ({ user }) => {
   // Fetch all projects to link employees by affaireNumero
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_PROJECT}/projects`);
+      const response = await fetch(`${API_PROJECT}`);
       if (response.ok) {
         const data = await response.json();
         setProjects(data);
@@ -463,6 +458,7 @@ const ResponsablePage = ({ user }) => {
   };
 
   useEffect(() => {
+    document.title = "Espace Responsable | Pointage SI";
     fetchEmployeesToSupervise();
     fetchSupervisors();
     fetchProjects();
@@ -563,13 +559,13 @@ const ResponsablePage = ({ user }) => {
     });
   };
 
-  // const markAllSortie = () => {
-  //   supervisedEmployees.forEach(emp => {
-  //     if (emp.status !== 'Sortie') {
-  //       markStatus(emp.id, 'Sortie');
-  //     }
-  //   });
-  // };
+  const markAllSortie = () => {
+    supervisedEmployees.forEach(emp => {
+      if (emp.status !== 'Sortie') {
+        markStatus(emp.id, 'Sortie');
+      }
+    });
+  };
 
   const handleImportEmployees = (e) => {
     const file = e.target.files[0];
@@ -1005,9 +1001,12 @@ const ResponsablePage = ({ user }) => {
             <p className="ppp-hint">Cliquez sur un projet pour voir ses employés. Définissez les heures planifiées et cliquez <strong>Appliquer</strong>.</p>
           </div>
 
-           <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
-              <FaUserCheck /> <span>Tous Présents</span>
-            </button>
+          <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
+            <FaUserCheck /> <span>Tous Présents</span>
+          </button>
+          <button onClick={markAllSortie} className="btn-icon-label" title="Marquer tous en sortie">
+            <FaUserTimes /> <span>Tous en Sortie</span>
+          </button>
 
           <div className="ppp-rows">
             {projectKeys.map(affaire => {
@@ -1037,32 +1036,32 @@ const ResponsablePage = ({ user }) => {
                     </div>
 
                     <div className="ppp-stat">
-                      <span className="ppp-stat-label">Superviseur</span>
-                      <span className="ppp-stat-value muted">
+                      <span className="ppp-stat-label">SUPERVISEUR</span>
+                      <span className="ppp-stat-value">
                         {supervisors.find(s => String(s.id) === String(emps[0]?.supervisorId))?.name || '—'}
                       </span>
                     </div>
 
                     <div className="ppp-stat">
-                      <span className="ppp-stat-label">Effectif</span>
+                      <span className="ppp-stat-label">EFFECTIF</span>
                       <span className="ppp-stat-value">{emps.length}</span>
                     </div>
 
                     <div className="ppp-stat">
-                      <span className="ppp-stat-label">Hrs travaillées</span>
-                      <span className="ppp-stat-value primary">{formatHours(totalWorked)}</span>
+                      <span className="ppp-stat-label">HRS TRAVAILLÉES</span>
+                      <span className="ppp-stat-value highlight">{formatHours(totalWorked)}</span>
                     </div>
 
                     <div className="ppp-stat">
-                      <span className="ppp-stat-label">Planifié actuel</span>
-                      <span className="ppp-stat-value muted">{currentPlanned ? `${currentPlanned}h` : '—'}</span>
+                      <span className="ppp-stat-label">PLANIFIÉ ACTUEL</span>
+                      <span className="ppp-stat-value">{currentPlanned ? `${currentPlanned}h` : '—'}</span>
                     </div>
 
                     <div className="ppp-input-group" onClick={e => e.stopPropagation()}>
                       <input
                         type="number"
                         min="0"
-                        placeholder="Ex: 2000"
+                        placeholder="0"
                         value={inputVal === 0 && projectPlannedHours[affaire] === undefined ? '' : inputVal}
                         onChange={e => setProjectPlannedHours(prev => ({ ...prev, [affaire]: e.target.value }))}
                         className="ppp-input"
@@ -1075,17 +1074,16 @@ const ResponsablePage = ({ user }) => {
                       className={`ppp-apply-btn ${isApplying ? 'loading' : ''}`}
                       onClick={e => { e.stopPropagation(); applyPlannedHoursToProject(affaire); }}
                       disabled={isApplying || projectPlannedHours[affaire] === undefined || String(projectPlannedHours[affaire]).trim() === ''}
-                      title={`Appliquer à tous les employés de l'affaire ${affaire}`}
                     >
                       {isApplying ? (
-                        <><FaSync className="fa-spin" /> Application...</>
+                        <FaSync className="fa-spin" />
                       ) : (
                         <><FaArrowRight /> Appliquer à tous</>
                       )}
                     </button>
 
                     <div className="ppp-expand-icon">
-                      {isExpanded ? '−' : '+'}
+                      {isExpanded ? <FaTimes /> : <FaPlus />}
                     </div>
                   </div>
 

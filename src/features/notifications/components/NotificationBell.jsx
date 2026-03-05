@@ -28,10 +28,10 @@ const NotificationPanel = ({ user }) => {
     return `Il y a ${Math.floor(seconds / 86400)}j`;
   };
 
-  const handleUploadToAdmin = async () => {
+  const handleImportToSupervisor = async () => {
     if (!selectedNotification || !selectedNotification.data || isUploading) return;
 
-    if (!window.confirm(`Voulez-vous vraiment transmettre ces ${selectedNotification.data.length} pointages à l'Admin ? Cela mettra à jour la vue globale.`)) {
+    if (!window.confirm(`Voulez-vous importer ces ${selectedNotification.data.length} employés dans votre liste de pointage ?`)) {
       return;
     }
 
@@ -55,30 +55,27 @@ const NotificationPanel = ({ user }) => {
               pointageEntree: row['Pointage d\'entrée'] || '-',
               pointageSortie: row['Pointage de sortie'] || '-',
               status: row['Statut'] || 'En attente',
-              totalHoursWorked: row['Hrs travailées'] || 0,
-              daysWorked: row['Jrs travaillés'] || 0,
+              totHrsTravaillees: (typeof row['Hrs travailées'] === 'string')
+                ? parseFloat(row['Hrs travailées'].replace('h', ''))
+                : (row['Hrs travailées'] || 0),
+              nbrJrsTravaillees: row['Jrs travaillés'] || 0,
               affaireNumero: row['Affaire N°'] || '-',
               client: row['Client'] || '-',
-              site: row['Site'] || '-'
+              site: row['Site'] || '-',
+              plannedHours: row['Planned Hours'] || row['Heures Planifiées'] || 0,
+              supervisorId: user.id // Assign to current supervisor
             })
           });
           successCount++;
         }
       }
 
-      // Notify Admin that the Superviseur has uploaded the data
-      addNotification(
-        `Superviseur ${user.name} a validé et transmis le rapport de pointage final (${successCount} employé(s)) à la vue globale.`,
-        'success',
-        selectedNotification.data,
-        'admin' // Target Admin
-      );
-
+      alert(`Importation terminée : ${successCount} employé(s) ajoutés à votre liste.`);
       dismissNotification(selectedNotification.id);
       setSelectedNotification(null);
     } catch (error) {
-      console.error("Error uploading to admin:", error);
-      alert("Une erreur est survenue lors de la transmission.");
+      console.error("Error importing to supervisor:", error);
+      alert("Une erreur est survenue lors de l'importation.");
     } finally {
       setIsUploading(false);
     }
@@ -136,20 +133,7 @@ const NotificationPanel = ({ user }) => {
                       onClick={() => notification.data && setSelectedNotification(notification)}
                     >
                       <div className="notification-card-header">
-                        <h3>
-                          {notification.recipientRole === 'admin' ?
-                            notification.message :
-                            (notification.data && notification.data[0] ? (() => {
-                              const sup = notification.data[0]['Superviseur'] || '';
-                              const sig = notification.data[0]['Siège'] || '';
-                              return (
-                                <>
-                                  <strong>{user.name}</strong> — Rapport de pointage final ({notification.data.length} employé(s))
-                                </>
-                              );
-                            })() : notification.message)
-                          }
-                        </h3>
+                        <h3>{notification.message}</h3>
                         <button
                           className="card-dismiss-btn"
                           onClick={(e) => {
@@ -164,7 +148,7 @@ const NotificationPanel = ({ user }) => {
                       <div className="notification-card-footer">
                         <span className="card-time">{getTimeAgo(notification.timestamp)}</span>
                         {notification.data && (
-                          <span className="card-action-badge">📊 {user.role === 'superviseur' ? 'Vérifier & Transmettre' : 'Voir détail'}</span>
+                          <span className="card-action-badge">📊 {user.role === 'superviseur' ? 'Vérifier & Importer' : 'Voir détail'}</span>
                         )}
                       </div>
                     </div>
@@ -225,10 +209,10 @@ const NotificationPanel = ({ user }) => {
               {user?.role === 'superviseur' && (
                 <button
                   className="transmit-btn"
-                  onClick={handleUploadToAdmin}
+                  onClick={handleImportToSupervisor}
                   disabled={isUploading}
                 >
-                  {isUploading ? '⏳ Transmission...' : '📤 Transmettre à l\'Admin'}
+                  {isUploading ? '⏳ Importation...' : '📥 Importer vers ma liste'}
                 </button>
               )}
             </div>
