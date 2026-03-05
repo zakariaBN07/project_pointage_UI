@@ -37,7 +37,7 @@ const ResponsablePage = ({ user }) => {
   const [selectedSupervisorId, setSelectedSupervisorId] = useState('');
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [projectPages, setProjectPages] = useState({});
   const itemsPerPage = 10;
   const [responsableName] = useState(user?.name || '');
   const [responsableSiege, setResponsableSiege] = useState(user?.siege || '');
@@ -158,35 +158,82 @@ const ResponsablePage = ({ user }) => {
     }
   };
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = supervisedEmployees.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(supervisedEmployees.length / itemsPerPage);
-
-  const paginate = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
+  // ─── Pagination helpers for project groups ────────────────────────────
+  const handleProjectPageChange = (affaire, newPage) => {
+    setProjectPages(prev => ({ ...prev, [affaire]: newPage }));
   };
 
-  const renderPageNumbers = () => {
+  const getPaginatedItems = (items, page) => {
+    const start = (page - 1) * itemsPerPage;
+    return items.slice(start, start + itemsPerPage);
+  };
+
+  const renderProjectPageNumbers = (totalItems, currentPage, affaire) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    if (totalPages <= 1) return null;
+
     const pages = [];
     const maxVisible = 5;
 
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisible - 1);
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxVisible - 1);
 
-      if (end === totalPages) {
-        start = Math.max(1, end - maxVisible + 1);
-      }
-
-      for (let i = start; i <= end; i++) pages.push(i);
+    if (end === totalPages) {
+      start = Math.max(1, end - maxVisible + 1);
     }
-    return pages;
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    return (
+      <div className="pagination-container" style={{ marginTop: '1.5rem', borderTop: '1px solid #eef2ff', paddingTop: '1.5rem' }}>
+        <div className="pagination-info" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+          Page <strong>{currentPage}</strong> sur <strong>{totalPages}</strong> ({totalItems} employés)
+        </div>
+        <div className="pagination-controls">
+          <button
+            onClick={() => handleProjectPageChange(affaire, 1)}
+            disabled={currentPage === 1}
+            className="pagination-btn first"
+          >
+            <FaAngleDoubleLeft />
+          </button>
+          <button
+            onClick={() => handleProjectPageChange(affaire, currentPage - 1)}
+            disabled={currentPage === 1}
+            className="pagination-btn prev"
+          >
+            <FaChevronLeft />
+          </button>
+
+          <div className="pagination-pages">
+            {pages.map(p => (
+              <button
+                key={p}
+                onClick={() => handleProjectPageChange(affaire, p)}
+                className={`pagination-number ${currentPage === p ? 'active' : ''}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handleProjectPageChange(affaire, currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="pagination-btn next"
+          >
+            <FaChevronRight />
+          </button>
+          <button
+            onClick={() => handleProjectPageChange(affaire, totalPages)}
+            disabled={currentPage === totalPages}
+            className="pagination-btn last"
+          >
+            <FaAngleDoubleRight />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   // Count employees with status "En attente"
@@ -689,7 +736,7 @@ const ResponsablePage = ({ user }) => {
       const excelTitle = `${responsableName || 'Non spécifié'} a exporté la liste de pointage final (${latestEmployees.length} employé(s))`;
 
       const headers = [
-        'Nom complet', 'Matricule', 'Affaire N°', 'Client', 'Site',
+        'Nom complet', 'Matricule', 'Affaire N°', 'Client', 'Site', 'Heures Planifiées',
         "Pointage d'entrée", 'Pointage de sortie', 'Statut',
         'Hrs travailées', 'Jrs travaillés', 'Jrs Absence', 'Hrs Dimanche',
         'Jrs Fériés', 'Jrs Fériés Trav.', 'Jrs Congés', 'Jrs Dépl. Maroc',
@@ -704,6 +751,7 @@ const ResponsablePage = ({ user }) => {
         nbrJrsMaladie, chantierAtelier
       }) => [
           name, matricule, affaireNumero || '-', client || '-', site || '-',
+          plannedHours || 0,
           pointageEntree || '-', pointageSortie || '-', status || 'En attente',
           formatHours(totHrsTravaillees),
           formatDays(nbrJrsTravaillees),
@@ -881,140 +929,6 @@ const ResponsablePage = ({ user }) => {
         </div>
       </div>
 
-      {/* ── Project Planning Panel (accordion) ────────────────────── */}
-      {projectKeys.length > 0 && (
-        <section className="project-planning-panel card animate-slide-down">
-          <div className="ppp-header">
-            <div className="ppp-title">
-              <FaHardHat />
-              <span>Heures Planifiées par Projet</span>
-              <span className="ppp-badge">{projectKeys.length} projet{projectKeys.length > 1 ? 's' : ''}</span>
-            </div>
-            <p className="ppp-hint">Cliquez sur un projet pour voir ses employés. Définissez les heures planifiées et cliquez <strong>Appliquer</strong>.</p>
-          </div>
-
-          <div className="ppp-rows">
-            {projectKeys.map(affaire => {
-              const emps = employeesByProject[affaire] || [];
-              const totalWorked = emps.reduce((sum, e) => sum + (e.totHrsTravaillees || 0), 0);
-              const currentPlanned = emps[0]?.plannedHours || 0;
-              const inputVal = projectPlannedHours[affaire] !== undefined
-                ? projectPlannedHours[affaire]
-                : currentPlanned;
-              const isApplying = applyingProject === affaire;
-              const isExpanded = expandedProject === affaire;
-
-              return (
-                <div key={affaire} className={`ppp-group ${isExpanded ? 'ppp-group-expanded' : ''}`}>
-
-                  {/* Clickable header row */}
-                  <div
-                    className="ppp-row"
-                    onClick={e => {
-                      // Don't collapse when clicking inputs/buttons
-                      if (e.target.closest('.ppp-input-group') || e.target.closest('.ppp-apply-btn')) return;
-                      toggleProjectExpand(affaire);
-                    }}
-                  >
-                    <div className="ppp-affaire">
-                      <span className="ppp-num">#{affaire}</span>
-                    </div>
-
-                    <div className="ppp-stat">
-                      <span className="ppp-stat-label">Effectif</span>
-                      <span className="ppp-stat-value">{emps.length}</span>
-                    </div>
-
-                    <div className="ppp-stat">
-                      <span className="ppp-stat-label">Hrs travaillées</span>
-                      <span className="ppp-stat-value primary">{formatHours(totalWorked)}</span>
-                    </div>
-
-                    <div className="ppp-stat">
-                      <span className="ppp-stat-label">Planifié actuel</span>
-                      <span className="ppp-stat-value muted">{currentPlanned ? `${currentPlanned}h` : '—'}</span>
-                    </div>
-
-                    <div className="ppp-input-group" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="Ex: 2000"
-                        value={inputVal === 0 && projectPlannedHours[affaire] === undefined ? '' : inputVal}
-                        onChange={e => setProjectPlannedHours(prev => ({ ...prev, [affaire]: e.target.value }))}
-                        className="ppp-input"
-                        disabled={isApplying}
-                      />
-                      <span className="ppp-unit">h</span>
-                    </div>
-
-                    <button
-                      className={`ppp-apply-btn ${isApplying ? 'loading' : ''}`}
-                      onClick={e => { e.stopPropagation(); applyPlannedHoursToProject(affaire); }}
-                      disabled={isApplying || projectPlannedHours[affaire] === undefined || String(projectPlannedHours[affaire]).trim() === ''}
-                      title={`Appliquer à tous les employés de l'affaire ${affaire}`}
-                    >
-                      {isApplying ? (
-                        <><FaSync className="fa-spin" /> Application...</>
-                      ) : (
-                        <><FaArrowRight /> Appliquer à tous</>
-                      )}
-                    </button>
-
-                    <div className="ppp-expand-icon">
-                      {isExpanded ? '−' : '+'}
-                    </div>
-                  </div>
-
-                  {/* Expandable employee sub-table */}
-                  {isExpanded && (
-                    <div className="ppp-details animate-slide-down">
-                      <div className="table-responsive">
-                        <table className="employees-table ppp-sub-table">
-                          <thead>
-                            <tr>
-                              <th>Nom</th>
-                              <th>Matricule</th>
-                              <th>Site</th>
-                              <th>Hrs trav.</th>
-                              <th>Jrs trav.</th>
-                              <th>Statut</th>
-                              <th>Planifié</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {emps.map(emp => (
-                              <tr key={emp.id} className={emp.status !== 'En attente' ? 'row-marked' : ''}>
-                                <td style={{ fontWeight: 600 }}>{emp.name}</td>
-                                <td>{emp.matricule}</td>
-                                <td>{emp.site || '—'}</td>
-                                <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(emp.totHrsTravaillees)}</td>
-                                <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(emp.nbrJrsTravaillees)}</td>
-                                <td>
-                                  <span className={`badge-status ${emp.status === 'Présent' ? 'bs-present' :
-                                    emp.status === 'Absent' ? 'bs-absent' :
-                                      emp.status === 'Sortie' ? 'bs-sortie' : 'bs-attente'
-                                    }`}>{emp.status}</span>
-                                </td>
-                                <td>
-                                  <span className="planned-hours-badge">
-                                    {emp.plannedHours ? `${emp.plannedHours}h` : '—'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {showAddForm && (
         <section className="add-employee-card card animate-slide-down">
           <div className="card-header">
@@ -1085,393 +999,224 @@ const ResponsablePage = ({ user }) => {
         </section>
       )}
 
-      {/* <section className="main-table-card card">
-        <div className="table-header">
-          <h2><FaFileImport /> Liste des Employés : <span>{supervisors.find(s => String(s.id) === String(selectedSupervisorId))?.name || 'Veuillez choisir un superviseur'}</span></h2>
-          <div className="table-actions" style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleExportEmployees} className="btn-icon-label" title="Exporter Liste">
-              <FaFileExport /> <span>Liste Excel</span>
-            </button>
-            <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
-              <FaUserCheck /> <span>Tous Présents</span>
-            </button>
-            <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
-              <FaSync /> 
-            </button>
-            <button
-              onClick={handleDeleteList}
-              className="btn-icon-label"
-              title="Supprimer Liste"
-            >
-              <FaTrash /> <span>Supprimer Liste</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="table-responsive">
-          <table className="employees-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Matricule</th>
-                <th>Affaire</th>
-                <th>Site</th>
-                <th>Planned Hours</th>
-                <th>Hrs trav.</th>
-                <th>Jrs trav.</th>
-                <th>Entrée</th>
-                <th>Sortie</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentItems.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="empty-msg">Aucun employé assigné.</td>
-                </tr>
-              ) : (
-                currentItems.map((emp, idx) => (
-                  <tr key={emp.id} className={emp.status !== 'En attente' ? 'row-marked' : ''}>
-                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
-                      {indexOfFirstItem + idx + 1}
-                    </td>
-                    <td data-label="Nom" style={{ fontWeight: 600 }}>
-                      {editingId === emp.id ? (
-                        <input name="name" value={editEmployee.name} onChange={handleEditChange} />
-                      ) : emp.name}
-                    </td>
-                    <td data-label="Matricule">
-                      {editingId === emp.id ? (
-                        <input name="matricule" value={editEmployee.matricule} onChange={handleEditChange} />
-                      ) : emp.matricule}
-                    </td>
-                    <td data-label="Affaire N°">
-                      {editingId === emp.id ? (
-                        <input name="affaireNumero" value={editEmployee.affaireNumero} onChange={handleEditChange} />
-                      ) : emp.affaireNumero || '-'}
-                    </td>
-
-                    <td data-label="Site">
-                      {editingId === emp.id ? (
-                        <input name="site" value={editEmployee.site} onChange={handleEditChange} />
-                      ) : emp.site || '-'}
-                    </td>
-                    <td data-label="Planned Hours">
-                      <span className="planned-hours-badge">
-                        {emp.plannedHours ? `${emp.plannedHours}h` : '—'}
-                      </span>
-                    </td>
-                    <td data-label="Hrs" style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(emp.totHrsTravaillees)}</td>
-                    <td data-label="Jrs" style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(emp.nbrJrsTravaillees)}</td>
-                    <td data-label="Entrée"><span className="time-cell">{emp.pointageEntree}</span></td>
-                    <td data-label="Sortie"><span className="time-cell">{emp.pointageSortie}</span></td>
-                    <td data-label="Statut">
-                      <div className="status-pills">
-                        <button
-                          onClick={() => markStatus(emp.id, 'Présent')}
-                          className={`pill present ${emp.status === 'Présent' ? 'active' : ''}`}
-                        >
-                          Présent
-                        </button>
-                        <button
-                          onClick={() => markStatus(emp.id, 'Sortie')}
-                          className={`pill sortie ${emp.status === 'Sortie' ? 'active' : ''}`}
-                        >
-                          Sortie
-                        </button>
-                        <button
-                          onClick={() => markStatus(emp.id, 'Absent')}
-                          className={`pill absent ${emp.status === 'Absent' ? 'active' : ''}`}
-                        >
-                          Absent
-                        </button>
-                      </div>
-                    </td>
-                    <td data-label="Actions">
-                      {editingId === emp.id ? (
-                        <div className="row-actions">
-                          <button onClick={() => saveEdit(emp.id)} className="save-btn" title="Sauvegarder"><FaSave /></button>
-                          <button onClick={cancelEdit} className="cancel-btn" title="Annuler"><FaTimes /></button>
-                        </div>
-                      ) : (
-                        <div className="row-actions">
-                          <button onClick={() => startEditing(emp)} className="edit-btn" title="Modifier"><FaEdit /></button>
-                          <button onClick={() => setActiveActivityModal(emp)} className="activity-btn" title="Activité Détaillée"><FaClipboardList /></button>
-                          <button onClick={() => handleDeleteEmployee(emp.id)} className="delete-btn" title="Supprimer"><FaTrash /></button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {activeActivityModal && (
-          <div className="activity-modal-overlay">
-            <div className="activity-modal animate-slide-up">
-              <div className="modal-header">
-                <div>
-                  <h2><FaClipboardList /> Activité Détaillée</h2>
-                  <p>{activeActivityModal.name} - {activeActivityModal.matricule}</p>
-                </div>
-                <button className="close-btn" onClick={() => setActiveActivityModal(null)}><FaTimes /></button>
-              </div>
-
-              <div className="modal-content-grid">
-                <div className="activity-section">
-                  <h4><FaCalendarAlt /> Absences & Congés</h4>
-                  <div className="activity-fields">
-                    <div className="num-field">
-                      <label>Jrs Absence</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsAbsence || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsAbsence: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsAbsence: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Congés</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsConges || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsConges: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsConges: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Maladie</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsMaladie || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsMaladie: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsMaladie: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Récup.</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsRecuperation || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsRecuperation: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsRecuperation: val });
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="activity-section">
-                  <h4><FaSync /> Heures & Fériés</h4>
-                  <div className="activity-fields">
-                    <div className="num-field">
-                      <label>Hrs Dimanche</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.totHrsDimanche || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, totHrsDimanche: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, totHrsDimanche: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Fériés</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsFeries || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsFeries: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsFeries: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Fériés Trav.</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsFeriesTravailes || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsFeriesTravailes: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsFeriesTravailes: val });
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="activity-section">
-                  <h4><FaHardHat /> Logistique & Terrain</h4>
-                  <div className="activity-fields">
-                    <div className="num-field">
-                      <label>Jrs Dépl. Maroc</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsDeplacementsMaroc || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsDeplacementsMaroc: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsDeplacementsMaroc: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Dépl. Expat</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsDeplacementsExpatrie || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsDeplacementsExpatrie: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsDeplacementsExpatrie: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Paniers</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsPaniers || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsPaniers: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsPaniers: val });
-                        }}
-                      />
-                    </div>
-                    <div className="num-field">
-                      <label>Jrs Détente</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={activeActivityModal.nbrJrsDetente || 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, nbrJrsDetente: val } : emp));
-                          setActiveActivityModal({ ...activeActivityModal, nbrJrsDetente: val });
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="activity-section-full">
-                  <div className="text-field">
-                    <label>Chantier / Atelier</label>
-                    <input
-                      type="text"
-                      placeholder="Commentaire ou lieu spécifique..."
-                      value={activeActivityModal.chantierAtelier || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEmployeesPointage(prev => prev.map(emp => emp.id === activeActivityModal.id ? { ...emp, chantierAtelier: val } : emp));
-                        setActiveActivityModal({ ...activeActivityModal, chantierAtelier: val });
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button className="cancel-btn-alt" onClick={() => setActiveActivityModal(null)}>Annuler</button>
-                <button className="save-btn-alt" onClick={async () => {
-                  try {
-                    await fetch(`${API_EMPLOYEE}/employees/${activeActivityModal.id}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(activeActivityModal)
-                    });
-                    setActiveActivityModal(null);
-                  } catch (e) { console.error(e); }
-                }}><FaSave /> Sauvegarder l'Activité</button>
-              </div>
+      {/* ── Project Planning Panel (accordion) ────────────────────── */}
+      {projectKeys.length > 0 && (
+        <section className="project-planning-panel card animate-slide-down">
+          <div className="ppp-header">
+            <div className="ppp-title">
+              <FaHardHat />
+              <span>Heures Planifiées par Projet</span>
+              <span className="ppp-badge">{projectKeys.length} projet{projectKeys.length > 1 ? 's' : ''}</span>
             </div>
+            <p className="ppp-hint">Cliquez sur un projet pour voir ses employés. Définissez les heures planifiées et cliquez <strong>Appliquer</strong>.</p>
           </div>
-        )}
-        {supervisedEmployees.length > itemsPerPage && (
-          <div className="pagination-container">
-            <div className="pagination-info">
-              Affichage de <strong>{indexOfFirstItem + 1}</strong> à{' '}
-              <strong>{Math.min(indexOfLastItem, supervisedEmployees.length)}</strong> sur{' '}
-              <strong>{supervisedEmployees.length}</strong> employés
-            </div>
-            <div className="pagination-controls">
-              <button
-                onClick={() => paginate(1)}
-                disabled={currentPage === 1}
-                className="pagination-btn first"
-                title="Première page"
-              >
-                <FaAngleDoubleLeft />
-              </button>
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="pagination-btn prev"
-                title="Précédent"
-              >
-                <FaChevronLeft />
-              </button>
 
-              <div className="pagination-pages">
-                {renderPageNumbers().map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => paginate(page)}
-                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+          <div className="ppp-rows">
+            {projectKeys.map(affaire => {
+              const emps = employeesByProject[affaire] || [];
+              const totalWorked = emps.reduce((sum, e) => sum + (e.totHrsTravaillees || 0), 0);
+              const currentPlanned = emps[0]?.plannedHours || 0;
+              const inputVal = projectPlannedHours[affaire] !== undefined
+                ? projectPlannedHours[affaire]
+                : currentPlanned;
+              const isApplying = applyingProject === affaire;
+              const isExpanded = expandedProject === affaire;
+
+              return (
+                <div key={affaire} className={`ppp-group ${isExpanded ? 'ppp-group-expanded' : ''}`}>
+
+                  {/* Clickable header row */}
+                  <div
+                    className="ppp-row"
+                    onClick={e => {
+                      // Don't collapse when clicking inputs/buttons
+                      if (e.target.closest('.ppp-input-group') || e.target.closest('.ppp-apply-btn')) return;
+                      toggleProjectExpand(affaire);
+                    }}
                   >
-                    {page}
-                  </button>
-                ))}
-              </div>
+                    <div className="ppp-affaire">
+                      <span className="ppp-num">#{affaire}</span>
+                    </div>
 
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="pagination-btn next"
-                title="Suivant"
-              >
-                <FaChevronRight />
-              </button>
-              <button
-                onClick={() => paginate(totalPages)}
-                disabled={currentPage === totalPages}
-                className="pagination-btn last"
-                title="Dernière page"
-              >
-                <FaAngleDoubleRight />
-              </button>
-            </div>
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Superviseur</span>
+                      <span className="ppp-stat-value muted">
+                        {supervisors.find(s => String(s.id) === String(emps[0]?.supervisorId))?.name || '—'}
+                      </span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Effectif</span>
+                      <span className="ppp-stat-value">{emps.length}</span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Hrs travaillées</span>
+                      <span className="ppp-stat-value primary">{formatHours(totalWorked)}</span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Planifié actuel</span>
+                      <span className="ppp-stat-value muted">{currentPlanned ? `${currentPlanned}h` : '—'}</span>
+                    </div>
+
+                    <div className="ppp-input-group" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Ex: 2000"
+                        value={inputVal === 0 && projectPlannedHours[affaire] === undefined ? '' : inputVal}
+                        onChange={e => setProjectPlannedHours(prev => ({ ...prev, [affaire]: e.target.value }))}
+                        className="ppp-input"
+                        disabled={isApplying}
+                      />
+                      <span className="ppp-unit">h</span>
+                    </div>
+
+                    <button
+                      className={`ppp-apply-btn ${isApplying ? 'loading' : ''}`}
+                      onClick={e => { e.stopPropagation(); applyPlannedHoursToProject(affaire); }}
+                      disabled={isApplying || projectPlannedHours[affaire] === undefined || String(projectPlannedHours[affaire]).trim() === ''}
+                      title={`Appliquer à tous les employés de l'affaire ${affaire}`}
+                    >
+                      {isApplying ? (
+                        <><FaSync className="fa-spin" /> Application...</>
+                      ) : (
+                        <><FaArrowRight /> Appliquer à tous</>
+                      )}
+                    </button>
+
+                    <div className="ppp-expand-icon">
+                      {isExpanded ? '−' : '+'}
+                    </div>
+                  </div>
+
+                  {/* Expandable employee sub-table */}
+                  {isExpanded && (
+                    <div className="ppp-details animate-slide-down">
+                      <div className="table-responsive">
+                        <table className="employees-table ppp-sub-table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Nom</th>
+                              <th>Matricule</th>
+                              <th>Affaire</th>
+                              <th>Site</th>
+                              <th>Planned Hours</th>
+                              <th>Hrs trav.</th>
+                              <th>Jrs trav.</th>
+                              <th>Entrée</th>
+                              <th>Sortie</th>
+                              <th>Statut</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const currentPage = projectPages[affaire] || 1;
+                              const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+                              const currentProjectItems = getPaginatedItems(emps, currentPage);
+
+                              if (currentProjectItems.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan="12" className="empty-msg">Aucun employé assigné.</td>
+                                  </tr>
+                                );
+                              }
+
+                              return currentProjectItems.map((emp, idx) => (
+                                <tr key={emp.id} className={emp.status !== 'En attente' ? 'row-marked' : ''}>
+                                  <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                                    {indexOfFirstItem + idx + 1}
+                                  </td>
+                                  <td data-label="Nom" style={{ fontWeight: 600 }}>
+                                    {editingId === emp.id ? (
+                                      <input name="name" value={editEmployee.name} onChange={handleEditChange} />
+                                    ) : emp.name}
+                                  </td>
+                                  <td data-label="Matricule">
+                                    {editingId === emp.id ? (
+                                      <input name="matricule" value={editEmployee.matricule} onChange={handleEditChange} />
+                                    ) : emp.matricule}
+                                  </td>
+                                  <td data-label="Affaire N°">
+                                    {editingId === emp.id ? (
+                                      <input name="affaireNumero" value={editEmployee.affaireNumero} onChange={handleEditChange} />
+                                    ) : emp.affaireNumero || '-'}
+                                  </td>
+
+                                  <td data-label="Site">
+                                    {editingId === emp.id ? (
+                                      <input name="site" value={editEmployee.site} onChange={handleEditChange} />
+                                    ) : emp.site || '-'}
+                                  </td>
+                                  <td data-label="Planned Hours">
+                                    <span className="planned-hours-badge">
+                                      {emp.plannedHours ? `${emp.plannedHours}h` : '—'}
+                                    </span>
+                                  </td>
+                                  <td data-label="Hrs" style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(emp.totHrsTravaillees)}</td>
+                                  <td data-label="Jrs" style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(emp.nbrJrsTravaillees)}</td>
+                                  <td data-label="Entrée"><span className="time-cell">{emp.pointageEntree}</span></td>
+                                  <td data-label="Sortie"><span className="time-cell">{emp.pointageSortie}</span></td>
+                                  <td data-label="Statut">
+                                    <div className="status-pills">
+                                      <button
+                                        onClick={() => markStatus(emp.id, 'Présent')}
+                                        className={`pill present ${emp.status === 'Présent' ? 'active' : ''}`}
+                                      >
+                                        Présent
+                                      </button>
+                                      <button
+                                        onClick={() => markStatus(emp.id, 'Sortie')}
+                                        className={`pill sortie ${emp.status === 'Sortie' ? 'active' : ''}`}
+                                      >
+                                        Sortie
+                                      </button>
+                                      <button
+                                        onClick={() => markStatus(emp.id, 'Absent')}
+                                        className={`pill absent ${emp.status === 'Absent' ? 'active' : ''}`}
+                                      >
+                                        Absent
+                                      </button>
+                                    </div>
+                                  </td>
+                                  <td data-label="Actions">
+                                    {editingId === emp.id ? (
+                                      <div className="row-actions">
+                                        <button onClick={() => saveEdit(emp.id)} className="save-btn" title="Sauvegarder"><FaSave /></button>
+                                        <button onClick={cancelEdit} className="cancel-btn" title="Annuler"><FaTimes /></button>
+                                      </div>
+                                    ) : (
+                                      <div className="row-actions">
+                                        <button onClick={() => startEditing(emp)} className="edit-btn" title="Modifier"><FaEdit /></button>
+                                        <button onClick={() => setActiveActivityModal(emp)} className="activity-btn" title="Activité Détaillée"><FaClipboardList /></button>
+                                        <button onClick={() => handleDeleteEmployee(emp.id)} className="delete-btn" title="Supprimer"><FaTrash /></button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+
+
+                      {/* Pagination for this project group */}
+                      {renderProjectPageNumbers(emps.length, projectPages[affaire] || 1, affaire)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
-      </section> */}
+        </section>
+      )}
+
+
     </div>
   );
 };

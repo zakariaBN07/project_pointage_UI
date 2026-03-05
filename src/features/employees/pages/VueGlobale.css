@@ -1392,3 +1392,15 @@
   border-top: 1px solid var(--border-light);
   border-radius: 0;
 }
+
+/* Planned hours badge in table */
+.planned-hours-badge {
+  display: inline-block;
+  background: #ede9fe;
+  color: #4338ca;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}

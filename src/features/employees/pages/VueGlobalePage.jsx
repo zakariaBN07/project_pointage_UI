@@ -119,6 +119,7 @@ const VueGlobalePage = () => {
             affaireNumero: emp.affaireNumero || '-',
             client: emp.client || '-',
             site: emp.site || '-',
+            plannedHours: emp.plannedHours || 0,
           }));
         setAllPointage(enriched);
       }
@@ -618,6 +619,8 @@ const VueGlobalePage = () => {
                               <th style={{ width: '110px' }}>Chantier</th>
                               <th style={{ width: '90px' }}>Entrée</th>
                               <th style={{ width: '90px' }}>Sortie</th>
+                              <th style={{ width: '90px' }}>Statut</th>
+                              <th style={{ width: '85px' }}>Planifié</th>
                               <th style={{ width: '80px' }}>Hrs</th>
                               <th style={{ width: '75px' }}>Jrs</th>
                               <th style={{ width: '75px' }}>Abs.</th>
@@ -631,7 +634,7 @@ const VueGlobalePage = () => {
                               <th style={{ width: '75px' }}>Détente</th>
                               <th style={{ width: '75px' }}>Récup.</th>
                               <th style={{ width: '75px' }}>Maladie</th>
-                              <th style={{ width: '90px' }}>Statut</th>
+                              
                             </tr>
                           </thead>
                           <tbody>
@@ -644,6 +647,20 @@ const VueGlobalePage = () => {
                                 <td>{row.chantierAtelier || '-'}</td>
                                 <td><span className="time-cell">{row.pointageEntree || '-'}</span></td>
                                 <td><span className="time-cell">{row.pointageSortie || '-'}</span></td>
+                                  <td>
+                                  <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
+                                    row.status === 'Absent' ? 'badge-danger' :
+                                      row.status === 'Sortie' ? 'badge-warning' :
+                                        'badge-info'
+                                    }`}>
+                                    {row.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="planned-hours-badge" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
+                                    {row.plannedHours ? `${row.plannedHours}h` : '—'}
+                                  </span>
+                                </td>
                                 <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(row.totHrsTravaillees)}</td>
                                 <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(row.nbrJrsTravaillees)}</td>
                                 <td>{formatDays(row.nbrJrsAbsence)}</td>
@@ -657,15 +674,7 @@ const VueGlobalePage = () => {
                                 <td>{formatDays(row.nbrJrsDetente)}</td>
                                 <td>{formatDays(row.nbrJrsRecuperation)}</td>
                                 <td>{formatDays(row.nbrJrsMaladie)}</td>
-                                <td>
-                                  <span className={`badge ${row.status === 'Présent' ? 'badge-success' :
-                                    row.status === 'Absent' ? 'badge-danger' :
-                                      row.status === 'Sortie' ? 'badge-warning' :
-                                        'badge-info'
-                                    }`}>
-                                    {row.status}
-                                  </span>
-                                </td>
+                              
                               </tr>
                             ))}
                           </tbody>

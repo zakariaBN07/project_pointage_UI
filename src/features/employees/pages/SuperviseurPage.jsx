@@ -70,6 +70,7 @@ const SuperviseurPage = ({ user }) => {
       'Affaire N°': emp.affaireNumero,
       'Client': emp.client,
       'Site': emp.site,
+      'Heures Planifiées': emp.plannedHours || 0,
       'Tot.Hrs trav.': formatHours(emp.totHrsTravaillees),
       'Jrs trav.': formatDays(emp.nbrJrsTravaillees),
       'Jrs Absence': formatDays(emp.nbrJrsAbsence),
@@ -128,6 +129,7 @@ const SuperviseurPage = ({ user }) => {
         'Affaire N°': emp.affaireNumero || '-',
         'Client': emp.client || '-',
         'Site': emp.site || '-',
+        'Heures Planifiées': emp.plannedHours || 0,
         'Heure d\'Entrée': emp.arrivee,
         'Heure de Sortie': emp.depart,
         'Statut': emp.status,
@@ -391,6 +393,7 @@ const SuperviseurPage = ({ user }) => {
                     <th>Heure d'Entrée</th>
                     <th>Heure de Sortie</th>
                     <th style={{ textAlign: 'center' }}>Statut</th>
+                    <th style={{ textAlign: 'center' }}>Planifié</th>
                     <th style={{ textAlign: 'center' }}>Détails</th>
                     {/* <th style={{ textAlign: 'center' }}>Tot.Hrs trav.</th>
                     <th style={{ textAlign: 'center' }}>Jrs trav.</th> */}
@@ -399,7 +402,7 @@ const SuperviseurPage = ({ user }) => {
                 <tbody>
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="10" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
+                      <td colSpan="11" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun rapport disponible.</td>
                     </tr>
                   ) : (
                     currentItems.map((report) => (
@@ -414,6 +417,11 @@ const SuperviseurPage = ({ user }) => {
                         <td style={{ textAlign: 'center' }}>
                           <span className={`badge ${report.status === 'Présent' ? 'badge-success' : 'badge-warning'}`}>
                             {report.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="planned-hours-badge">
+                            {report.plannedHours ? `${report.plannedHours}h` : '—'}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
