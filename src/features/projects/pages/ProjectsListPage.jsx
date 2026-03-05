@@ -29,13 +29,13 @@ const ProjectsListPage = ({ setCurrentPage }) => {
     fetchProjects();
   }, []);
 
-  const filteredProjects = filter === 'behind' 
+  const filteredProjects = filter === 'behind'
     ? projects.filter(p => p.timeExceedsProgress)
     : projects;
 
   return (
     <div className="projects-page">
-      <div className="page-header">
+      {/* <div className="page-header">
         <h1>Project Monitoring</h1>
         <button 
           className="btn btn-primary"
@@ -43,16 +43,16 @@ const ProjectsListPage = ({ setCurrentPage }) => {
         >
           + New Project
         </button>
-      </div>
+      </div> */}
 
       <div className="filter-bar">
-        <button 
+        <button
           className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
           onClick={() => setFilter('all')}
         >
           All Projects ({projects.length})
         </button>
-        <button 
+        <button
           className={`filter-btn ${filter === 'behind' ? 'active' : ''}`}
           onClick={() => setFilter('behind')}
         >
@@ -62,12 +62,12 @@ const ProjectsListPage = ({ setCurrentPage }) => {
 
       {loading && <div className="loading">Loading projects...</div>}
       {error && <div className="error-message">{error}</div>}
-      
+
       {!loading && filteredProjects.length === 0 && (
         <div className="empty-state">
           <p>No projects {filter === 'behind' ? 'behind schedule' : 'yet'}</p>
           {filter === 'all' && (
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => setCurrentPage('create-project')}
             >

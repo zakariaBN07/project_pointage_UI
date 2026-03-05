@@ -517,7 +517,7 @@ const VueGlobalePage = () => {
                           <span className="metric-value">{formatHours(group.remainingHours)}</span>
                         </div>
                       </div>
-                      
+
                       <div className="progress-section">
                         <div className="progress-header">
                           <span className="progress-label">
@@ -531,8 +531,8 @@ const VueGlobalePage = () => {
                             className="progress-bar-fill"
                             style={{
                               width: `${Math.min(Number(group.progressPercent), 100)}%`,
-                              background: group.timeExceedsProgress 
-                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' 
+                              background: group.timeExceedsProgress
+                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
                                 : 'linear-gradient(90deg, #22c55e, #4ade80)'
                             }}
                           >
@@ -553,8 +553,8 @@ const VueGlobalePage = () => {
                             className="progress-bar-fill"
                             style={{
                               width: `${Math.min(Number(group.timePercent), 100)}%`,
-                              background: group.timeExceedsProgress 
-                                ? 'linear-gradient(90deg, #ef4444, #f87171)' 
+                              background: group.timeExceedsProgress
+                                ? 'linear-gradient(90deg, #ef4444, #f87171)'
                                 : 'linear-gradient(90deg, #0ea5e9, #38bdf8)'
                             }}
                           >

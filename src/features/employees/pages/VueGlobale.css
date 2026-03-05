@@ -998,6 +998,7 @@
 }
 
 @media (max-width: 1200px) {
+
   .gestionnaires-table.pointage-table thead th:nth-child(1),
   .gestionnaires-table.pointage-table thead th:nth-child(2),
   .gestionnaires-table.pointage-table tbody td:nth-child(1),
@@ -1391,4 +1392,3 @@
   border-top: 1px solid var(--border-light);
   border-radius: 0;
 }
-

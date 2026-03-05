@@ -1331,3 +1331,336 @@
     padding: 1.25rem 1rem;
   }
 }
+
+/* ======================================================
+   PROJECT PLANNING PANEL
+   ====================================================== */
+
+.project-planning-panel {
+  padding: 1.5rem 2rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #4f46e5;
+}
+
+/* Panel header */
+.ppp-header {
+  margin-bottom: 1.25rem;
+}
+
+.ppp-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+}
+
+.ppp-title svg {
+  color: #4f46e5;
+  font-size: 1rem;
+}
+
+.ppp-badge {
+  background: #ede9fe;
+  color: #4f46e5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ppp-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Rows container */
+.ppp-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Individual project row */
+.ppp-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+  flex-wrap: wrap;
+  transition: box-shadow 0.2s;
+}
+
+.ppp-row:hover {
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+  border-color: #c7d2fe;
+}
+
+/* Accordion group wrapper */
+.ppp-group {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.2s;
+}
+
+.ppp-group-expanded {
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.1);
+  border-color: #a5b4fc;
+}
+
+/* Make each row feel clickable */
+.ppp-row {
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  gap: 1.25rem;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  flex-wrap: wrap;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.ppp-row:hover {
+  background: #f1f5f9;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.ppp-group-expanded .ppp-row {
+  background: #eef2ff;
+  border-bottom: 1px solid #c7d2fe;
+}
+
+/* Expand toggle icon */
+.ppp-expand-icon {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #475569;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.ppp-group-expanded .ppp-expand-icon {
+  background: #4f46e5;
+  color: white;
+}
+
+/* Employee sub-table section */
+.ppp-details {
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  padding: 1.25rem 1.5rem;
+}
+
+.ppp-sub-table {
+  font-size: 0.85rem;
+}
+
+.ppp-sub-table thead th {
+  font-size: 0.72rem;
+}
+
+/* Status badges inside sub-table */
+.badge-status {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bs-present {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.bs-absent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.bs-sortie {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.bs-attente {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Affaire badge */
+.ppp-affaire {
+  min-width: 110px;
+}
+
+.ppp-num {
+  display: inline-block;
+  background: linear-gradient(135deg, #4f46e5, #818cf8);
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.35rem 0.8rem;
+  border-radius: 8px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Stat pills */
+.ppp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 90px;
+}
+
+.ppp-stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.ppp-stat-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.ppp-stat-value.primary {
+  color: #4f46e5;
+}
+
+.ppp-stat-value.muted {
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Input group */
+.ppp-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: white;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ppp-input-group:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.ppp-input {
+  border: none !important;
+  outline: none !important;
+  width: 90px;
+  padding: 0.6rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.ppp-input::-webkit-inner-spin-button,
+.ppp-input::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
+.ppp-unit {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+/* Apply button */
+.ppp-apply-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.ppp-apply-btn:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.ppp-apply-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ppp-apply-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ppp-apply-btn.loading {
+  background: #6366f1;
+}
+
+/* Read-only planned hours badge in table */
+.planned-hours-badge {
+  display: inline-block;
+  background: #ede9fe;
+  color: #4338ca;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ppp-row {
+    gap: 0.75rem;
+  }
+
+  .ppp-apply-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ppp-input {
+    width: 70px;
+  }
+}

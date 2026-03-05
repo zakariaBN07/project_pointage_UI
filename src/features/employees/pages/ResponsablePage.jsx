@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { NotificationContext } from '../../notifications/NotificationContext';
 import {
@@ -49,6 +49,7 @@ const ResponsablePage = ({ user }) => {
     affaireNumero: '',
     client: '',
     site: '',
+    plannedHours: 0,
     supervisorId: '',
     nbrJrsAbsence: 0,
     totHrsDimanche: 0,
@@ -71,6 +72,7 @@ const ResponsablePage = ({ user }) => {
     affaireNumero: '',
     client: '',
     site: '',
+    plannedHours: 0,
     supervisorId: '',
     nbrJrsAbsence: 0,
     totHrsDimanche: 0,
@@ -88,6 +90,15 @@ const ResponsablePage = ({ user }) => {
   const [activeActivityModal, setActiveActivityModal] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
 
+  // ─── Project-level planned hours ─────────────────────────────────────
+  // Map of affaireNumero → input value (local UI state, ephemeral until applied)
+  const [projectPlannedHours, setProjectPlannedHours] = useState({});
+  const [applyingProject, setApplyingProject] = useState(null);
+  const [expandedProject, setExpandedProject] = useState(null);
+
+  const toggleProjectExpand = (affaire) =>
+    setExpandedProject(prev => prev === affaire ? null : affaire);
+
   const hasNotifiedRef = useRef(false);
 
   // Filter for only regular employees and by selected supervisor
@@ -96,6 +107,56 @@ const ResponsablePage = ({ user }) => {
     const matchesSupervisor = selectedSupervisorId ? String(emp.supervisorId) === String(selectedSupervisorId) : true;
     return isRegular && matchesSupervisor;
   });
+
+  // ─── Group supervised employees by affaireNumero ──────────────────────
+  const employeesByProject = useMemo(() => {
+    const groups = {};
+    supervisedEmployees.forEach(emp => {
+      const key = emp.affaireNumero || 'Sans Affaire';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(emp);
+    });
+    return groups;
+  }, [supervisedEmployees]);
+
+  // Sorted list of distinct project keys
+  const projectKeys = useMemo(() => Object.keys(employeesByProject).sort(), [employeesByProject]);
+
+  // ─── Bulk apply planned hours to all employees in a project ───────────
+  const applyPlannedHoursToProject = async (affaireNumero) => {
+    const hours = parseFloat(projectPlannedHours[affaireNumero]) || 0;
+    const employees = employeesByProject[affaireNumero] || [];
+    if (employees.length === 0) return;
+    setApplyingProject(affaireNumero);
+    try {
+      await Promise.all(
+        employees.map(emp =>
+          fetch(`${API_EMPLOYEE}/employees/${emp.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...emp, plannedHours: hours })
+          })
+        )
+      );
+      // Update local state so table reflects new value immediately
+      setEmployeesPointage(prev =>
+        prev.map(e =>
+          (e.affaireNumero || 'Sans Affaire') === affaireNumero
+            ? { ...e, plannedHours: hours }
+            : e
+        )
+      );
+      addNotification(
+        `✔ ${employees.length} employé(s) du projet ${affaireNumero} mis à jour (${hours}h planifiées).`,
+        'success'
+      );
+    } catch (err) {
+      console.error('applyPlannedHoursToProject error:', err);
+      addNotification('Erreur lors de la mise à jour des heures planifiées.', 'error');
+    } finally {
+      setApplyingProject(null);
+    }
+  };
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -141,21 +202,21 @@ const ResponsablePage = ({ user }) => {
         : `${API_EMPLOYEE}/employees`;
       const response = await fetch(url);
       if (response.ok) {
-          const rawData = await response.json();
-          // Initialize with default status if not present and remove sensitive data
-          const initializedData = rawData.map(({ password, ...emp }) => ({
-            ...emp,
-            pointageEntree: emp.pointageEntree || '-',
-            pointageSortie: emp.pointageSortie || '-',
-            status: emp.status || 'En attente'
-          }));
-          // Filter client-side to ensure only employees for this responsable are shown.
-          // Some backends may not support the ?responsableId= query reliably,
-          // so enforce the restriction locally to avoid showing the full list.
-          const visible = user?.id
-            ? initializedData.filter(emp => String(emp.responsableId) === String(user.id))
-            : initializedData;
-          setEmployeesPointage(visible);
+        const rawData = await response.json();
+        // Initialize with default status if not present and remove sensitive data
+        const initializedData = rawData.map(({ password, ...emp }) => ({
+          ...emp,
+          pointageEntree: emp.pointageEntree || '-',
+          pointageSortie: emp.pointageSortie || '-',
+          status: emp.status || 'En attente'
+        }));
+        // Filter client-side to ensure only employees for this responsable are shown.
+        // Some backends may not support the ?responsableId= query reliably,
+        // so enforce the restriction locally to avoid showing the full list.
+        const visible = user?.id
+          ? initializedData.filter(emp => String(emp.responsableId) === String(user.id))
+          : initializedData;
+        setEmployeesPointage(visible);
       }
     } catch (error) {
       console.error("Error fetching employees for supervision:", error);
@@ -202,6 +263,7 @@ const ResponsablePage = ({ user }) => {
             affaireNumero: '',
             client: '',
             site: '',
+            plannedHours: 0,
             supervisorId: '',
             nbrJrsAbsence: 0,
             totHrsDimanche: 0,
@@ -278,6 +340,7 @@ const ResponsablePage = ({ user }) => {
       affaireNumero: emp.affaireNumero || '',
       client: emp.client || '',
       site: emp.site || '',
+      // plannedHours is now project-level only — not editable per row
       supervisorId: emp.supervisorId || '',
       nbrJrsAbsence: emp.nbrJrsAbsence || 0,
       totHrsDimanche: emp.totHrsDimanche || 0,
@@ -413,13 +476,13 @@ const ResponsablePage = ({ user }) => {
       prev.map(e =>
         e.id === id
           ? {
-              ...e,
-              status: newStatus,
-              pointageEntree: updatedEntree,
-              pointageSortie: updatedSortie,
-              totHrsTravaillees: updatedTotHrsTravaillees,
-              nbrJrsTravaillees: updatedNbrJrsTravaillees,
-            }
+            ...e,
+            status: newStatus,
+            pointageEntree: updatedEntree,
+            pointageSortie: updatedSortie,
+            totHrsTravaillees: updatedTotHrsTravaillees,
+            nbrJrsTravaillees: updatedNbrJrsTravaillees,
+          }
           : e
       )
     );
@@ -452,14 +515,15 @@ const ResponsablePage = ({ user }) => {
       }
     });
   };
-   
+
   const handleExportEmployees = () => {
-    const dataToExport = supervisedEmployees.map(({ name, matricule, affaireNumero, client, site }) => ({
+    const dataToExport = supervisedEmployees.map(({ name, matricule, affaireNumero, client, site, plannedHours }) => ({
       'Nom': name,
       'Matricule': matricule,
       'Affaire N°': affaireNumero || '-',
       'Client': client || '-',
-      'Site': site || '-'
+      'Site': site || '-',
+      'Planned Hours': plannedHours || 0
     }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
@@ -518,12 +582,14 @@ const ResponsablePage = ({ user }) => {
         const affaireKey = keys.find(k => k.toLowerCase().trim().includes('affaire'));
         const clientKey = keys.find(k => k.toLowerCase().trim().includes('client'));
         const siteKey = keys.find(k => k.toLowerCase().trim().includes('site'));
+        const plannedHoursKey = keys.find(k => k.toLowerCase().trim().includes('planned hours'));
 
         const name = nameKey ? row[nameKey] : null;
         const matricule = matriculeKey ? row[matriculeKey] : null;
         const affaireNumero = affaireKey ? row[affaireKey] : '-';
         const client = clientKey ? row[clientKey] : '-';
         const site = siteKey ? row[siteKey] : '-';
+        const plannedHours = plannedHoursKey ? row[plannedHoursKey] : 0;
 
         if (!name ||
           String(name).toLowerCase().trim() === 'nom complet' ||
@@ -565,7 +631,8 @@ const ResponsablePage = ({ user }) => {
               pointageSortie: '-',
               affaireNumero: normalizedAffaire,
               client: String(client).trim(),
-              site: String(site).trim()
+              site: String(site).trim(),
+              plannedHours: plannedHours || 0,
             }),
           });
         } catch (error) {
@@ -630,7 +697,7 @@ const ResponsablePage = ({ user }) => {
         'Jrs Maladie', 'Chantier/Atelier'
       ];
       const rows = latestEmployees.map(({
-        name, matricule, affaireNumero, client, site, pointageEntree, pointageSortie, status,
+        name, matricule, affaireNumero, client, site, plannedHours, pointageEntree, pointageSortie, status,
         totHrsTravaillees, nbrJrsTravaillees, nbrJrsAbsence, totHrsDimanche,
         nbrJrsFeries, nbrJrsFeriesTravailes, nbrJrsConges, nbrJrsDeplacementsMaroc,
         nbrJrsPaniers, nbrJrsDetente, nbrJrsDeplacementsExpatrie, nbrJrsRecuperation,
@@ -674,6 +741,7 @@ const ResponsablePage = ({ user }) => {
         'Affaire N°': emp.affaireNumero || '-',
         'Client': emp.client || '-',
         'Site': emp.site || '-',
+        'Planned Hours': emp.plannedHours || 0,
         'Pointage d\'entrée': emp.pointageEntree || '-',
         'Pointage de sortie': emp.pointageSortie || '-',
         'Statut': emp.status || 'En attente',
@@ -813,6 +881,140 @@ const ResponsablePage = ({ user }) => {
         </div>
       </div>
 
+      {/* ── Project Planning Panel (accordion) ────────────────────── */}
+      {projectKeys.length > 0 && (
+        <section className="project-planning-panel card animate-slide-down">
+          <div className="ppp-header">
+            <div className="ppp-title">
+              <FaHardHat />
+              <span>Heures Planifiées par Projet</span>
+              <span className="ppp-badge">{projectKeys.length} projet{projectKeys.length > 1 ? 's' : ''}</span>
+            </div>
+            <p className="ppp-hint">Cliquez sur un projet pour voir ses employés. Définissez les heures planifiées et cliquez <strong>Appliquer</strong>.</p>
+          </div>
+
+          <div className="ppp-rows">
+            {projectKeys.map(affaire => {
+              const emps = employeesByProject[affaire] || [];
+              const totalWorked = emps.reduce((sum, e) => sum + (e.totHrsTravaillees || 0), 0);
+              const currentPlanned = emps[0]?.plannedHours || 0;
+              const inputVal = projectPlannedHours[affaire] !== undefined
+                ? projectPlannedHours[affaire]
+                : currentPlanned;
+              const isApplying = applyingProject === affaire;
+              const isExpanded = expandedProject === affaire;
+
+              return (
+                <div key={affaire} className={`ppp-group ${isExpanded ? 'ppp-group-expanded' : ''}`}>
+
+                  {/* Clickable header row */}
+                  <div
+                    className="ppp-row"
+                    onClick={e => {
+                      // Don't collapse when clicking inputs/buttons
+                      if (e.target.closest('.ppp-input-group') || e.target.closest('.ppp-apply-btn')) return;
+                      toggleProjectExpand(affaire);
+                    }}
+                  >
+                    <div className="ppp-affaire">
+                      <span className="ppp-num">#{affaire}</span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Effectif</span>
+                      <span className="ppp-stat-value">{emps.length}</span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Hrs travaillées</span>
+                      <span className="ppp-stat-value primary">{formatHours(totalWorked)}</span>
+                    </div>
+
+                    <div className="ppp-stat">
+                      <span className="ppp-stat-label">Planifié actuel</span>
+                      <span className="ppp-stat-value muted">{currentPlanned ? `${currentPlanned}h` : '—'}</span>
+                    </div>
+
+                    <div className="ppp-input-group" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Ex: 2000"
+                        value={inputVal === 0 && projectPlannedHours[affaire] === undefined ? '' : inputVal}
+                        onChange={e => setProjectPlannedHours(prev => ({ ...prev, [affaire]: e.target.value }))}
+                        className="ppp-input"
+                        disabled={isApplying}
+                      />
+                      <span className="ppp-unit">h</span>
+                    </div>
+
+                    <button
+                      className={`ppp-apply-btn ${isApplying ? 'loading' : ''}`}
+                      onClick={e => { e.stopPropagation(); applyPlannedHoursToProject(affaire); }}
+                      disabled={isApplying || projectPlannedHours[affaire] === undefined || String(projectPlannedHours[affaire]).trim() === ''}
+                      title={`Appliquer à tous les employés de l'affaire ${affaire}`}
+                    >
+                      {isApplying ? (
+                        <><FaSync className="fa-spin" /> Application...</>
+                      ) : (
+                        <><FaArrowRight /> Appliquer à tous</>
+                      )}
+                    </button>
+
+                    <div className="ppp-expand-icon">
+                      {isExpanded ? '−' : '+'}
+                    </div>
+                  </div>
+
+                  {/* Expandable employee sub-table */}
+                  {isExpanded && (
+                    <div className="ppp-details animate-slide-down">
+                      <div className="table-responsive">
+                        <table className="employees-table ppp-sub-table">
+                          <thead>
+                            <tr>
+                              <th>Nom</th>
+                              <th>Matricule</th>
+                              <th>Site</th>
+                              <th>Hrs trav.</th>
+                              <th>Jrs trav.</th>
+                              <th>Statut</th>
+                              <th>Planifié</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emps.map(emp => (
+                              <tr key={emp.id} className={emp.status !== 'En attente' ? 'row-marked' : ''}>
+                                <td style={{ fontWeight: 600 }}>{emp.name}</td>
+                                <td>{emp.matricule}</td>
+                                <td>{emp.site || '—'}</td>
+                                <td style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(emp.totHrsTravaillees)}</td>
+                                <td style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(emp.nbrJrsTravaillees)}</td>
+                                <td>
+                                  <span className={`badge-status ${emp.status === 'Présent' ? 'bs-present' :
+                                    emp.status === 'Absent' ? 'bs-absent' :
+                                      emp.status === 'Sortie' ? 'bs-sortie' : 'bs-attente'
+                                    }`}>{emp.status}</span>
+                                </td>
+                                <td>
+                                  <span className="planned-hours-badge">
+                                    {emp.plannedHours ? `${emp.plannedHours}h` : '—'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {showAddForm && (
         <section className="add-employee-card card animate-slide-down">
           <div className="card-header">
@@ -868,13 +1070,22 @@ const ResponsablePage = ({ user }) => {
                   onChange={(e) => setNewEmployee({ ...newEmployee, site: e.target.value })}
                 />
               </div>
+              <div className="input-group">
+                <label> Planifier </label>
+                <input type="number"
+                  placeholder=' Ex:2000h '
+                  min={0}
+                  value={newEmployee.plannedHours}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, plannedHours: e.target.value })}
+                />
+              </div>
             </div>
             <button type="submit" className="submit-btn"><FaPlus /> Enregistrer cet employé</button>
           </form>
         </section>
       )}
 
-      <section className="main-table-card card">
+      {/* <section className="main-table-card card">
         <div className="table-header">
           <h2><FaFileImport /> Liste des Employés : <span>{supervisors.find(s => String(s.id) === String(selectedSupervisorId))?.name || 'Veuillez choisir un superviseur'}</span></h2>
           <div className="table-actions" style={{ display: 'flex', gap: '10px' }}>
@@ -884,9 +1095,9 @@ const ResponsablePage = ({ user }) => {
             <button onClick={markAllPresent} className="btn-icon-label" title="Marquer tous présents">
               <FaUserCheck /> <span>Tous Présents</span>
             </button>
-            {/* <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
+            <button onClick={fetchEmployeesToSupervise} className="btn-icon" title="Actualiser">
               <FaSync /> 
-            </button> */}
+            </button>
             <button
               onClick={handleDeleteList}
               className="btn-icon-label"
@@ -905,6 +1116,7 @@ const ResponsablePage = ({ user }) => {
                 <th>Matricule</th>
                 <th>Affaire</th>
                 <th>Site</th>
+                <th>Planned Hours</th>
                 <th>Hrs trav.</th>
                 <th>Jrs trav.</th>
                 <th>Entrée</th>
@@ -921,9 +1133,9 @@ const ResponsablePage = ({ user }) => {
               ) : (
                 currentItems.map((emp, idx) => (
                   <tr key={emp.id} className={emp.status !== 'En attente' ? 'row-marked' : ''}>
-                    {/* <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
                       {indexOfFirstItem + idx + 1}
-                    </td> */}
+                    </td>
                     <td data-label="Nom" style={{ fontWeight: 600 }}>
                       {editingId === emp.id ? (
                         <input name="name" value={editEmployee.name} onChange={handleEditChange} />
@@ -944,6 +1156,11 @@ const ResponsablePage = ({ user }) => {
                       {editingId === emp.id ? (
                         <input name="site" value={editEmployee.site} onChange={handleEditChange} />
                       ) : emp.site || '-'}
+                    </td>
+                    <td data-label="Planned Hours">
+                      <span className="planned-hours-badge">
+                        {emp.plannedHours ? `${emp.plannedHours}h` : '—'}
+                      </span>
                     </td>
                     <td data-label="Hrs" style={{ fontWeight: 600, color: '#4f46e5' }}>{formatHours(emp.totHrsTravaillees)}</td>
                     <td data-label="Jrs" style={{ fontWeight: 600, color: '#10b981' }}>{formatDays(emp.nbrJrsTravaillees)}</td>
@@ -992,7 +1209,6 @@ const ResponsablePage = ({ user }) => {
           </table>
         </div>
 
-        {/* MODERN ACTIVITY MODAL */}
         {activeActivityModal && (
           <div className="activity-modal-overlay">
             <div className="activity-modal animate-slide-up">
@@ -1255,7 +1471,7 @@ const ResponsablePage = ({ user }) => {
             </div>
           </div>
         )}
-      </section>
+      </section> */}
     </div>
   );
 };
