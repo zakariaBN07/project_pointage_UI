@@ -6,6 +6,7 @@ import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
 import AdminPage from '../features/dashboard/pages/AdminPage'
 import SuperviseurPage from '../features/employees/pages/Superviseurs/SuperviseurPage'
 import ResponsablePage from '../features/employees/pages/Responsables/ResponsablePage'
+import EmployeePage from '../features/employees/pages/EmployeePage'
 import NotificationPanel from '../features/notifications/components/NotificationBell'
 import SettingsPage from '../features/settings/pages/SettingsPage'
 import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
@@ -86,6 +87,18 @@ function App() {
             </div>
           )}
 
+          {/* Espace Employé */}
+          {user.role?.toLowerCase() === 'employé' && (
+            <div
+              className={`nav-item ${currentPage === 'employee' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('employee')}
+              style={{ cursor: 'pointer' }}
+            >
+              <MdPeople size={20} />
+              <span>Espace Employé</span>
+            </div>
+          )}
+
           {user.role === 'admin' && (
             <>
               <div
@@ -162,6 +175,7 @@ function App() {
               {user.role === 'admin' && <AdminPage />}
               {user.role === 'superviseur' && <SuperviseurPage user={user} />}
               {user.role === 'Responsable' && <ResponsablePage user={user} />}
+              {user.role?.toLowerCase() === 'employé' && <EmployeePage user={user} />}
             </>
           )}
         </main>
