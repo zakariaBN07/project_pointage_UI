@@ -26,7 +26,21 @@ const saveToHistorique = (notifications) => {
 };
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.map(n => ({
+          ...n,
+          timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+    }
+    return [];
+  });
   const [history, setHistory] = useState([]);
 
   // Load history from localStorage on mount
@@ -56,7 +70,48 @@ export const NotificationProvider = ({ children }) => {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    // Listen to localStorage changes for cross-tab synchronization
+    const handleStorageChange = (e) => {
+      if (e.key === STORAGE_KEY) {
+        try {
+          const stored = e.newValue;
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setNotifications(parsed.map(n => ({
+              ...n,
+              timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
+            })));
+          } else {
+            setNotifications([]);
+          }
+        } catch (err) {
+          console.error('Error in storage event for notifications:', err);
+        }
+      } else if (e.key === HISTORY_KEY) {
+        try {
+          const stored = e.newValue;
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setHistory(parsed.map(n => ({
+              ...n,
+              timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
+            })));
+          } else {
+            setHistory([]);
+          }
+        } catch (err) {
+          console.error('Error in storage event for history:', err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Keep active notifications in localStorage

@@ -1,6 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8081/api';
 
 export const tasksApi = {
+  // GET tasks for a project
+  getTasksForProject: async (projectId) => {
+    const response = await fetch(`${API_BASE}/projects/${projectId}/tasks`);
+    if (!response.ok) throw new Error('Failed to fetch tasks');
+    return response.json();
+  },
+
   // POST create tasks for a project (validates sum of weights = 100%)
   createTasks: async (projectId, tasks) => {
     const response = await fetch(`${API_BASE}/projects/${projectId}/tasks`, {

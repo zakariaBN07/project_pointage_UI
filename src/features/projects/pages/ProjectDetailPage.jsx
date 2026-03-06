@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import MetricsDisplay from '../components/MetricsDisplay';
 import TaskList from '../components/TaskList';
 import { projectsApi } from '../../../services/projects';
+import { tasksApi } from '../../../services/tasks';
 import '../styles/ProjectDetail.css';
 
 /**
  * Detailed project view showing full metrics, tasks, and completion options
  */
-const ProjectDetailPage = () => {
-  const { projectId } = useParams();
-  const navigate = useNavigate();
+const ProjectDetailPage = ({ projectId, onBack }) => {
   const [metrics, setMetrics] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [superviseurId] = useState(localStorage.getItem('userId')); // Get current user
+  // const [superviseurId] = useState(localStorage.getItem('userId')); // Get current user
+  const [supervisorName] = useState(localStorage.getItem('userName')); 
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -24,9 +23,10 @@ const ProjectDetailPage = () => {
       try {
         const metricsData = await projectsApi.getMetrics(projectId);
         setMetrics(metricsData);
-        // In a full implementation, fetch tasks from backend (GET /api/projects/{id}/tasks)
-        // For now, tasks would be included in metrics or fetched separately
-        setTasks(metricsData.tasks || []);
+
+        // Fetch tasks from backend for this project
+        const tasksData = await tasksApi.getTasksForProject(projectId);
+        setTasks(tasksData || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -51,7 +51,7 @@ const ProjectDetailPage = () => {
   return (
     <div className="project-detail-page">
       <div className="detail-header">
-        <button className="btn-back" onClick={() => navigate('/projects')}>← Back</button>
+        <button className="btn-back" onClick={onBack}>← Back</button>
         <div>
           <h1>{metrics.name}</h1>
           <p className="project-number">#{metrics.affaireNumero}</p>
@@ -66,7 +66,7 @@ const ProjectDetailPage = () => {
           <TaskList 
             tasks={tasks} 
             onTaskComplete={handleTaskComplete}
-            superviseurId={superviseurId}
+            supervisorName={supervisorName}
           />
         )}
         {tasks.length === 0 && (
@@ -78,9 +78,9 @@ const ProjectDetailPage = () => {
 
       <div className="superviseurs-section">
         <h2>Assigned Superviseurs</h2>
-        {metrics.superviseurIds && metrics.superviseurIds.length > 0 ? (
+        {metrics.supervisorName && metrics.supervisorName.length > 0 ? (
           <ul className="superviseur-list">
-            {metrics.superviseurIds.map(id => (
+            {metrics.supervisorName.map(id => (
               <li key={id}>{id}</li>
             ))}
           </ul>

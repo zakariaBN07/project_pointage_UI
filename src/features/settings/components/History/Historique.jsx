@@ -7,6 +7,9 @@ const Historique = () => {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [filter, setFilter] = useState('all');
 
+  // Admin should only see notifications meant for them
+  const adminHistory = history.filter(n => n.recipientRole === 'admin');
+
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return 'Date inconnue';
     const date = new Date(timestamp);
@@ -20,7 +23,7 @@ const Historique = () => {
     return `Il y a ${Math.floor(seconds / 604800)}sem`;
   };
 
-  const filteredHistory = filter === 'all' ? history : history.filter(n => n.type === filter);
+  const filteredHistory = filter === 'all' ? adminHistory : adminHistory.filter(n => n.type === filter);
 
   const handleClearHistory = () => {
     if (window.confirm('Êtes-vous sûr de vouloir effacer tout l\'historique ?')) {
@@ -45,7 +48,7 @@ const Historique = () => {
         {/* ── Header ───────────────────────────────── */}
         <div className="historique-header">
           <h2>📜 Historique des Notifications</h2>
-          {history.length > 0 && (
+          {adminHistory.length > 0 && (
             <button onClick={handleClearHistory} className="clear-history-btn">
               🗑️ Effacer l'historique
             </button>
@@ -53,7 +56,7 @@ const Historique = () => {
         </div>
 
         {/* ── Empty state ───────────────────────────── */}
-        {history.length === 0 ? (
+        {adminHistory.length === 0 ? (
           <div className="hist-empty">
             <p>Aucune notification dans l'historique</p>
           </div>
@@ -62,7 +65,7 @@ const Historique = () => {
             {/* ── Filter tab bar ───────────────────── */}
             <div className="hist-filter-bar">
               {FILTERS.map(({ key, label, cls }) => {
-                const count = key === 'all' ? history.length : history.filter(n => n.type === key).length;
+                const count = key === 'all' ? adminHistory.length : adminHistory.filter(n => n.type === key).length;
                 return (
                   <button
                     key={key}

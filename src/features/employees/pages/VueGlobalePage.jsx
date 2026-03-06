@@ -245,6 +245,7 @@ const VueGlobalePage = () => {
   }, [filteredPointage, projectMetrics]);
 
   const [expandedId, setExpandedId] = useState(null);
+  const [showProgressGroup, setShowProgressGroup] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [detailPage, setDetailPage] = useState(1);
@@ -519,83 +520,45 @@ const VueGlobalePage = () => {
                       </div>
                     </div>
 
-                    <div className="project-progress-container">
-                      <div className="metrics-grid">
-                        <div className="metric-item">
-                          <span className="metric-label">Planifié</span>
-                          <span className="metric-value">{formatHours(group.plannedHours)}</span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Consommé</span>
-                          <span className="metric-value">{formatHours(group.consumedHours)}</span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Restant</span>
-                          <span className="metric-value">{formatHours(group.remainingHours)}</span>
-                        </div>
+                    <div className="group-metrics-row">
+                      <div className="metric-pill">
+                        <span className="metric-label">Planifié</span>
+                        <span className="metric-value">{formatHours(group.plannedHours)}</span>
                       </div>
-
-                      <div className="progress-section">
-                        <div className="progress-header">
-                          <span className="progress-label">
-                            Avancement
-                            {group.timeExceedsProgress && <span className="alert-badge">Retard</span>}
-                          </span>
-                          <span className="progress-value">{Number(group.progressPercent).toFixed(0)}%</span>
-                        </div>
-                        <div className="progress-bar-container">
-                          <div
-                            className="progress-bar-fill"
-                            style={{
-                              width: `${Math.min(Number(group.progressPercent), 100)}%`,
-                              background: group.timeExceedsProgress
-                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                                : 'linear-gradient(90deg, #22c55e, #4ade80)'
-                            }}
-                          >
-                            {Number(group.progressPercent).toFixed(0)}%
-                          </div>
-                        </div>
+                      <div className="metric-pill">
+                        <span className="metric-label">Consommé</span>
+                        <span className="metric-value">{formatHours(group.consumedHours)}</span>
                       </div>
-
-                      <div className="progress-section">
-                        <div className="progress-header">
-                          <span className="progress-label">Temps Consommé</span>
-                          <span className={`time-percentage ${group.timeExceedsProgress ? 'behind' : 'on-track'}`}>
-                            {Number(group.timePercent).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="progress-bar-container">
-                          <div
-                            className="progress-bar-fill"
-                            style={{
-                              width: `${Math.min(Number(group.timePercent), 100)}%`,
-                              background: group.timeExceedsProgress
-                                ? 'linear-gradient(90deg, #ef4444, #f87171)'
-                                : 'linear-gradient(90deg, #0ea5e9, #38bdf8)'
-                            }}
-                          >
-                            {Number(group.timePercent).toFixed(0)}%
-                          </div>
-                        </div>
+                      <div className="metric-pill">
+                        <span className="metric-label">Restant</span>
+                        <span className="metric-value">{formatHours(group.remainingHours)}</span>
                       </div>
-                    </div>
-
-                    <div className="group-stats">
-                      <div className="stat-pill">
-                        <span className="stat-label">Hrs Totales</span>
-                        <span className="stat-value">{formatHours(group.totalHours)}</span>
+                      <div className="metric-pill">
+                        <span className="metric-label">Hrs Totales</span>
+                        <span className="metric-value">{formatHours(group.totalHours)}</span>
                       </div>
-                      <div className="stat-pill">
-                        <span className="stat-label">Absences</span>
-                        <span className="stat-value">{group.totalAbsences} jrs</span>
+                      <div className="metric-pill">
+                        <span className="metric-label">Absences</span>
+                        <span className="metric-value">{group.totalAbsences} jrs</span>
                       </div>
-                      <div className="stat-pill">
-                        <span className="stat-label">Taux Présence</span>
-                        <span className={`stat-value ${group.presenceRate > 80 ? 'good' : group.presenceRate > 50 ? 'avg' : 'low'}`}>
+                      <div className="metric-pill">
+                        <span className="metric-label">Taux Présence</span>
+                        <span className={`metric-value ${group.presenceRate > 80 ? 'good' : group.presenceRate > 50 ? 'avg' : 'low'}`}>
                           {group.presenceRate}%
                         </span>
                       </div>
+                    </div>
+
+                    <div className="group-actions">
+                      <button
+                        className="btn-progress-toggle"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowProgressGroup(group);
+                        }}
+                      >
+                        Avancement
+                      </button>
                     </div>
 
                     <div className="expand-icon">
@@ -822,6 +785,72 @@ const VueGlobalePage = () => {
           </div>
         )}
       </div>
+
+      {showProgressGroup && (
+        <div className="modal-overlay" onClick={() => setShowProgressGroup(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Détails d'Avancement - #{showProgressGroup.affaireNumero}</h3>
+              <button className="close-btn" onClick={() => setShowProgressGroup(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="progress-item-detailed">
+                <div className="progress-info-row">
+                  <span className="progress-title">Avancement global</span>
+                  {showProgressGroup.timeExceedsProgress && <span className="alert-badge">! Retard</span>}
+                  <span className="progress-percent-val">{Number(showProgressGroup.progressPercent).toFixed(0)}%</span>
+                </div>
+                <div className="progress-track-premium">
+                  <div
+                    className="progress-fill-premium avancement"
+                    style={{
+                      width: `${Math.min(Number(showProgressGroup.progressPercent), 100)}%`,
+                      background: showProgressGroup.timeExceedsProgress
+                        ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                        : 'linear-gradient(90deg, #22c55e, #4ade80)'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="progress-item-detailed">
+                <div className="progress-info-row">
+                  <span className="progress-title">Temps Consommé</span>
+                  <span className={`progress-percent-val ${showProgressGroup.timeExceedsProgress ? 'behind' : 'on-track'}`}>
+                    {Number(showProgressGroup.timePercent).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="progress-track-premium">
+                  <div
+                    className="progress-fill-premium consomme"
+                    style={{
+                      width: `${Math.min(Number(showProgressGroup.timePercent), 100)}%`,
+                      background: showProgressGroup.timeExceedsProgress
+                        ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                        : 'linear-gradient(90deg, #0ea5e9, #38bdf8)'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer-stats">
+                <div className="mini-stat">
+                  <span className="mini-label">Planifié</span>
+                  <span className="mini-value">{formatHours(showProgressGroup.plannedHours)}</span>
+                </div>
+                <div className="mini-stat">
+                  <span className="mini-label">Consommé</span>
+                  <span className="mini-value">{formatHours(showProgressGroup.consumedHours)}</span>
+                </div>
+                <div className="mini-stat">
+                  <span className="mini-label">Restant</span>
+                  <span className="mini-value">{formatHours(showProgressGroup.remainingHours)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

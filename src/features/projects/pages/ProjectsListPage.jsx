@@ -6,7 +6,7 @@ import '../styles/ProjectsList.css';
 /**
  * Admin/Responsable page showing all projects with metrics and alerts
  */
-const ProjectsListPage = ({ setCurrentPage }) => {
+const ProjectsListPage = ({ setCurrentPage, onSelectProject }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,7 +79,11 @@ const ProjectsListPage = ({ setCurrentPage }) => {
 
       <div className="projects-grid">
         {filteredProjects.map((project) => (
-          <ProjectCard key={project.projectId} project={project} />
+          <ProjectCard
+            key={project.projectId}
+            project={project}
+            onSelect={onSelectProject}
+          />
         ))}
       </div>
     </div>

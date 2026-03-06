@@ -12,6 +12,7 @@ import GestionnairesPage from '../features/employees/pages/GestionnairesPage'
 import VueGlobalePage from '../features/employees/pages/VueGlobalePage'
 import ProjectsListPage from '../features/projects/pages/ProjectsListPage'
 import CreateProjectPage from '../features/projects/pages/CreateProjectPage'
+import ProjectDetailPage from '../features/projects/pages/ProjectDetailPage'
 import { MdHome, MdPeople, MdEventNote, MdSettings, MdAssignment } from "react-icons/md";
 
 
@@ -19,6 +20,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [showResetPassword, setShowResetPassword] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -135,9 +137,20 @@ function App() {
 
         <main className="content-body">
           {currentPage === 'projects' && user.role?.toLowerCase() === 'responsable' ? (
-            <ProjectsListPage setCurrentPage={setCurrentPage} />
+            <ProjectsListPage
+              setCurrentPage={setCurrentPage}
+              onSelectProject={(projectId) => {
+                setSelectedProjectId(projectId)
+                setCurrentPage('project-detail')
+              }}
+            />
           ) : currentPage === 'create-project' && user.role?.toLowerCase() === 'responsable' ? (
             <CreateProjectPage setCurrentPage={setCurrentPage} />
+          ) : currentPage === 'project-detail' && user.role?.toLowerCase() === 'responsable' && selectedProjectId ? (
+            <ProjectDetailPage
+              projectId={selectedProjectId}
+              onBack={() => setCurrentPage('projects')}
+            />
           ) : currentPage === 'parametre' && user.role === 'admin' ? (
             <SettingsPage />
           ) : currentPage === 'lists' && user.role === 'admin' ? (

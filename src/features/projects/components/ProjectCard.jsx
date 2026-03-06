@@ -1,12 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import '../styles/ProjectCard.css';
 
 /**
  * Card component showing project summary with metrics
  * Used on project list/dashboard pages
  */
-const ProjectCard = ({ project }) => {
+const ProjectCard = ({ project, onSelect }) => {
   if (!project) return null;
 
   const {
@@ -21,8 +20,15 @@ const ProjectCard = ({ project }) => {
     timeExceedsProgress,
   } = project;
 
+  const handleClick = (e) => {
+    e.preventDefault();
+    if (onSelect && projectId) {
+      onSelect(projectId);
+    }
+  };
+
   return (
-    <Link to={`/projects/${projectId}`} className="project-card-link">
+    <button type="button" className="project-card-link" onClick={handleClick}>
       <div className={`project-card ${timeExceedsProgress ? 'alert' : ''}`}>
         <div className="card-header">
           <div>
@@ -63,7 +69,7 @@ const ProjectCard = ({ project }) => {
           </span>
         </div>
       </div>
-    </Link>
+    </button>
   );
 };
 
