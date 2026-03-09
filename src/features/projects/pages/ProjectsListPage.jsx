@@ -35,7 +35,7 @@ const ProjectsListPage = ({ setCurrentPage, onSelectProject }) => {
 
   return (
     <div className="projects-page">
-      {/* <div className="page-header">
+      <div className="page-header">
         <h1>Project Monitoring</h1>
         <button 
           className="btn btn-primary"
@@ -43,7 +43,7 @@ const ProjectsListPage = ({ setCurrentPage, onSelectProject }) => {
         >
           + New Project
         </button>
-      </div> */}
+      </div>
 
       <div className="filter-bar">
         <button

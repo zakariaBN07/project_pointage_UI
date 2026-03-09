@@ -329,8 +329,8 @@ const GestionnairesPage = () => {
 
       {/* Add Modal */}
       {isAddModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Nouvel Utilisateur</h3>
             </div>
@@ -366,7 +366,7 @@ const GestionnairesPage = () => {
                     onChange={(e) => setNewGestionnaire({ ...newGestionnaire, role: e.target.value, siege: e.target.value !== 'superviseur' ? '' : newGestionnaire.siege })}
                   >
                     <option value="superviseur">Superviseur</option>
-                    <option value="Responsable">Responsable</option>
+                    <option value="responsable">Responsable</option>
                   </select>
                 </div>
                 {newGestionnaire.role === 'superviseur' ? (
@@ -421,8 +421,8 @@ const GestionnairesPage = () => {
 
       {/* Edit Modal */}
       {isEditModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={cancelEdit}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Modifier l'utilisateur</h3>
             </div>
@@ -445,7 +445,7 @@ const GestionnairesPage = () => {
                   onChange={handleEditChange}
                 >
                   <option value="superviseur">Superviseur</option>
-                  <option value="Responsable">Responsable</option>
+                  <option value="responsable">Responsable</option>
                 </select>
               </div>
             </div>

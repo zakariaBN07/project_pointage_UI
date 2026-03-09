@@ -12,6 +12,7 @@ const ProjectCard = ({ project, onSelect }) => {
     projectId,
     affaireNumero,
     name,
+    username,
     plannedHours,
     consumedHours,
     remainingHours,
@@ -34,6 +35,7 @@ const ProjectCard = ({ project, onSelect }) => {
           <div>
             <h3 className="project-name">{name}</h3>
             <p className="project-number">#{affaireNumero}</p>
+            <p className="project-client">{username}</p>
           </div>
           {timeExceedsProgress && <span className="alert-badge">⚠️ Behind</span>}
         </div>

@@ -26,7 +26,7 @@ import {
 } from 'react-icons/fa';
 import './Responsable.css';
 
-const ResponsablePage = ({ user }) => {
+const ResponsablePage = ({ user, setCurrentPage }) => {
   const { addNotification } = useContext(NotificationContext);
   const API_EMPLOYEE = import.meta.env.VITE_APP_API_EMPLOYEE_URL;
   const API_ADMIN = import.meta.env.VITE_APP_API_ADMIN_URL;
@@ -88,6 +88,7 @@ const ResponsablePage = ({ user }) => {
     chantierAtelier: ''
   });
   const [activeActivityModal, setActiveActivityModal] = useState(null);
+  const [editingProgress, setEditingProgress] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
 
   // ─── Project-level planned hours ─────────────────────────────────────
@@ -373,6 +374,29 @@ const ResponsablePage = ({ user }) => {
     }
   };
 
+  const handleUpdateProgress = async (empId, progress) => {
+    try {
+      const emp = employeesPointage.find(e => e.id === empId);
+      const response = await fetch(`${API_EMPLOYEE}/employees/${empId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...emp, projectProgress: parseInt(progress, 10) })
+      });
+
+      if (response.ok) {
+        fetchEmployeesToSupervise();
+        if (activeActivityModal && activeActivityModal.id === empId) {
+          setActiveActivityModal(prev => ({ ...prev, projectProgress: parseInt(progress, 10) }));
+        }
+      } else {
+        alert("Erreur lors de la mise à jour de la progression");
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      alert("Erreur serveur");
+    }
+  };
+
   const startEditing = (emp) => {
     setEditingId(emp.id);
     setEditEmployee({
@@ -481,7 +505,7 @@ const ResponsablePage = ({ user }) => {
     const timeString = now.toLocaleTimeString('fr-FR', { hour12: false });
 
     const emp = employeesPointage.find(e => e.id === id);
-    if (!emp) return;
+    if (!emp || emp.status === newStatus) return;
 
     let updatedEntree = emp.pointageEntree;
     let updatedSortie = emp.pointageSortie;
@@ -1007,7 +1031,7 @@ const ResponsablePage = ({ user }) => {
           <button onClick={markAllSortie} className="btn-icon-label" title="Marquer tous en sortie">
             <FaUserTimes /> <span>Tous en Sortie</span>
           </button>
-
+          
           <div className="ppp-rows">
             {projectKeys.map(affaire => {
               const emps = employeesByProject[affaire] || [];
@@ -1210,6 +1234,202 @@ const ResponsablePage = ({ user }) => {
             })}
           </div>
         </section>
+      )}
+
+      {/* ── Activity Detail Modal ────────────────────────────── */}
+      {activeActivityModal && (
+        <div className="activity-modal-overlay" onClick={() => setActiveActivityModal(null)}>
+          <div className="activity-modal animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2><FaClipboardList /> Modifier l'Activité Détaillée</h2>
+                <p>{activeActivityModal.name} - {activeActivityModal.matricule}</p>
+              </div>
+              <button className="close-btn" onClick={() => setActiveActivityModal(null)} aria-label="Fermer"><FaTimes /></button>
+            </div>
+
+            <div className="modal-content-grid">
+              <div className="activity-section">
+                <h4><FaCalendarAlt /> Absences & Congés</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Jrs Absence</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsAbsence || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsAbsence: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Congés</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsConges || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsConges: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Maladie</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsMaladie || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsMaladie: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Récup.</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsRecuperation || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsRecuperation: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4><FaSync /> Heures & Fériés</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Hrs Dimanche</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.totHrsDimanche || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, totHrsDimanche: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Fériés</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsFeries || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsFeries: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Fériés Trav.</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsFeriesTravailes || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsFeriesTravailes: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4><FaHardHat /> Logistique & Terrain</h4>
+                <div className="activity-fields">
+                  <div className="num-field">
+                    <label>Jrs Dépl. Maroc</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsDeplacementsMaroc || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsDeplacementsMaroc: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Dépl. Expat</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsDeplacementsExpatrie || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsDeplacementsExpatrie: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Paniers</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsPaniers || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsPaniers: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="num-field">
+                    <label>Jrs Détente</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={activeActivityModal.nbrJrsDetente || 0}
+                      onChange={(e) => setActiveActivityModal({ ...activeActivityModal, nbrJrsDetente: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section">
+                <h4 style={{ color: '#4f46e5' }}><FaSync /> Avancement Projet (%)</h4>
+                <div className="activity-fields">
+                  <div className="num-field" style={{ flex: '1' }}>
+                    <label>Progression Actuelle</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={activeActivityModal.projectProgress ?? ""}
+                        onChange={(e) =>
+                          setActiveActivityModal({
+                            ...activeActivityModal,
+                            projectProgress: e.target.value
+                          })
+                        } style={{ borderColor: '#818cf8', fontWeight: 'bold' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="activity-section-full">
+                <div className="text-field">
+                  <label>Chantier / Atelier</label>
+                  <input
+                    type="text"
+                    value={activeActivityModal.chantierAtelier || ''}
+                    onChange={(e) => setActiveActivityModal({ ...activeActivityModal, chantierAtelier: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="cancel-btn-alt" onClick={() => setActiveActivityModal(null)}>Annuler</button>
+              <button
+                className="save-btn-alt"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${API_EMPLOYEE}/employees/${activeActivityModal.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(activeActivityModal)
+                    });
+                    if (response.ok) {
+                      fetchEmployeesToSupervise();
+                      setActiveActivityModal(null);
+                      alert("Activité mise à jour avec succès !");
+                    } else {
+                      alert("Erreur lors de la mise à jour");
+                    }
+                  } catch (error) {
+                    console.error("Save error:", error);
+                    alert("Erreur de connexion");
+                  }
+                }}
+              >
+                <FaSave /> Enregistrer les modifications
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

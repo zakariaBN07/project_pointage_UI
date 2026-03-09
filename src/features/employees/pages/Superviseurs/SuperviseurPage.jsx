@@ -302,7 +302,7 @@ const SuperviseurPage = ({ user }) => {
         </div>
       </div>
 
-      <div className="projects-summary-section">
+      {/* <div className="projects-summary-section">
         <div className="section-title">
           <h2><FaHardHat style={{ marginRight: '10px' }} /> Mes Projets & Avancement</h2>
         </div>
@@ -340,7 +340,7 @@ const SuperviseurPage = ({ user }) => {
             ))
           )}
         </div>
-      </div>
+      </div> */}
 
       <div className="card">
         <div className="section-title">

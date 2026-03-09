@@ -14,7 +14,7 @@ const CreateProjectPage = ({ setCurrentPage }) => {
   const [project, setProject] = useState({
     affaireNumero: '',
     name: '',
-    plannedHours: '',
+    currentPlanned: '',
     deadline: '',
   });
 
@@ -64,7 +64,9 @@ const CreateProjectPage = ({ setCurrentPage }) => {
       const projectData = {
         affaireNumero: project.affaireNumero,
         name: project.name,
-        plannedHours: project.plannedHours ? parseFloat(project.plannedHours) : null,
+        currentPlanned: project.currentPlanned
+          ? parseFloat(project.currentPlanned)
+          : null,
         deadline: project.deadline || null,
       };
 
@@ -101,7 +103,7 @@ const CreateProjectPage = ({ setCurrentPage }) => {
       <form onSubmit={handleSubmit} className="project-form">
         <div className="form-section">
           <h2>Project Information</h2>
-          
+
           <div className="form-group">
             <label htmlFor="affaireNumero">Project Number (Affaire) *</label>
             <input
@@ -135,7 +137,7 @@ const CreateProjectPage = ({ setCurrentPage }) => {
                 id="plannedHours"
                 type="number"
                 name="plannedHours"
-                value={project.plannedHours}
+                value={project.currentPlanned}
                 onChange={handleProjectChange}
                 min="0"
                 step="0.5"

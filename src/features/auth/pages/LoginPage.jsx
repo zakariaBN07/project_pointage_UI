@@ -32,7 +32,6 @@ const Login = ({ onLogin }) => {
     }
 
     try {
-      // First try gestionnaire (admin / superviseur / responsable) login
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,25 +42,7 @@ const Login = ({ onLogin }) => {
         const rawUser = await response.json();
         const { password, ...user } = rawUser;
         onLogin(user);
-        return;
-      }
-
-      // If not a gestionnaire, try employee login (separate endpoint)
-      const empResponse = await fetch(`${API_URL}/auth/employee-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-
-      if (empResponse.ok) {
-        const user = await empResponse.json();
-        // Attach matricule to user object so EmployeePage can load data
-        user.matricule = credentials.name;
-        onLogin(user);
-        return;
-      }
-
-      if (empResponse.status === 401) {
+      } else if (response.status === 401) {
         setError('Identifiants invalides.');
       } else {
         setError('Erreur serveur.');

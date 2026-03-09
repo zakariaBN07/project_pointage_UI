@@ -174,7 +174,7 @@ function App() {
             <>
               {user.role === 'admin' && <AdminPage />}
               {user.role === 'superviseur' && <SuperviseurPage user={user} />}
-              {user.role === 'Responsable' && <ResponsablePage user={user} />}
+              {user.role === 'Responsable' && <ResponsablePage user={user} setCurrentPage={setCurrentPage} />}
               {user.role?.toLowerCase() === 'employé' && <EmployeePage user={user} />}
             </>
           )}

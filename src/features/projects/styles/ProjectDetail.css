@@ -42,11 +42,72 @@
   border: 1px solid #e0e0e0;
 }
 
-.tasks-section h2,
-.superviseurs-section h2 {
-  margin-top: 0;
+.tasks-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
-  color: #333;
+}
+
+.tasks-section h2 {
+  margin: 0;
+}
+
+.add-task-form {
+  background: #f8faff;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e0e7ff;
+  margin-bottom: 20px;
+}
+
+.add-task-form .form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-task-form input[type="text"] {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.add-task-form input[type="number"] {
+  width: 100px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.add-task-form .hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 .no-tasks {
