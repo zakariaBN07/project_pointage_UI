@@ -148,7 +148,7 @@ const ProjectDetailPage = ({ projectId, onBack }) => {
         )}
       </div>
 
-      <div className="superviseurs-section">
+      {/* <div className="superviseurs-section">
         <h2>Assigned Superviseurs</h2>
         {metrics.supervisorName && metrics.supervisorName.length > 0 ? (
           <ul className="superviseur-list">
@@ -159,7 +159,7 @@ const ProjectDetailPage = ({ projectId, onBack }) => {
         ) : (
           <p>No superviseurs assigned</p>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };

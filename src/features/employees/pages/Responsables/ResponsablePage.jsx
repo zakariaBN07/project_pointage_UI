@@ -1366,7 +1366,7 @@ const ResponsablePage = ({ user, setCurrentPage }) => {
                 </div>
               </div>
 
-              <div className="activity-section">
+              {/* <div className="activity-section">
                 <h4 style={{ color: '#4f46e5' }}><FaSync /> Avancement Projet (%)</h4>
                 <div className="activity-fields">
                   <div className="num-field" style={{ flex: '1' }}>
@@ -1387,7 +1387,7 @@ const ResponsablePage = ({ user, setCurrentPage }) => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div className="activity-section-full">
                 <div className="text-field">
